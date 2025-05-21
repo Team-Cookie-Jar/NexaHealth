@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+pymongo[srv]         # If using MongoDB Atlas (cloud version)
+firebase-admin       # If using Firebase (choose one DB solution)
+python-multipart     # For image upload support
+joblib
+scikit-learn
+pandas
+nltk
+geopy                # For nearby clinic geolocation

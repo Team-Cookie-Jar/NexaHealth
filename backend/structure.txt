@@ -1,0 +1,24 @@
+nexahealth-backend/
+│
+├── app/
+│   ├── main.py                # FastAPI entry point
+│   ├── routers/
+│   │   ├── verify.py          # Drug verification endpoint
+│   │   ├── report.py          # Report submission + prediction
+│   │   ├── map.py             # Flagged pharmacy map
+│   │   └── nearby.py          # Nearby clinics/pharmacies
+│   ├── models/
+│   │   └── report_model.py    # Pydantic schemas for request/response
+│   ├── core/
+│   │   ├── db.py              # MongoDB/Firebase config (choose one)
+│   │   └── ml.py              # Risk prediction logic using joblib
+│   └── data/
+│       └── verified_drugs.json  # Mock NAFDAC DB
+│
+├── ml/
+│   ├── train_model.py         # Train and export risk classifier
+│   ├── dataset.csv            # Synthetic dataset
+│   └── risk_classifier.joblib # Saved model
+│
+├── requirements.txt
+└── README.md

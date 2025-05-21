@@ -1,0 +1,28 @@
+2. Drug Verification Logic
+Use verified_drugs.json and build the /verify-drug logic in verify.py.
+
+3. Report Submission + Risk Prediction
+Create /submit-report and /predict-risk in report.py. Use the ML model loaded from joblib in core/ml.py.
+
+4. MongoDB or Firebase Firestore
+Connect in core/db.py. Choose only one:
+
+MongoDB: use pymongo[srv]
+
+Firebase: use firebase-admin
+
+✅ ML Integration Strategy
+core/ml.py:
+python
+Copy code
+import joblib
+
+vectorizer = joblib.load("ml/vectorizer.joblib")
+model = joblib.load("ml/risk_classifier.joblib")
+
+def predict_risk(text: str) -> str:
+    x = vectorizer.transform([text])
+    prediction = model.predict(x)[0]
+    return prediction
+⚡ This keeps the backend fast — no heavy model loading.
+
