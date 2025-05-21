@@ -78,6 +78,7 @@ Input: JSON with text description
 Output: risk: Low | Medium | High
 
 
+
 Integrate the locally trained model from the ML teammate (via joblib or shared function).
 
 

@@ -9,3 +9,8 @@ scikit-learn
 pandas
 nltk
 geopy                # For nearby clinic geolocation
+pytest
+httpx
+pytest-asyncio
+pytest-mock
+rapidfuzz

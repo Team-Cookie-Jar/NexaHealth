@@ -8,6 +8,18 @@ import os
 
 router = APIRouter()
 
+def sanitize_field(value: Optional[str], to_lower: bool = True) -> Optional[str]:
+    """
+    Trim whitespace and optionally lowercase the string.
+    Returns None if input is None or empty after trimming.
+    """
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    return value.lower() if to_lower else value
+
 @router.post("/submit-report", response_model=ReportResponse)
 async def submit_report(
     drug_name: str = Form(...),
@@ -41,13 +53,13 @@ async def submit_report(
             image_url = file_location
 
         report_data = {
-            "drug_name": drug_name,
-            "nafdac_reg_no": nafdac_reg_no,
-            "pharmacy_name": pharmacy_name,
-            "description": description,
-            "state": state,
-            "lga": lga,
-            "street_address": street_address,
+            "drug_name": sanitize_field(drug_name),
+            "nafdac_reg_no": nafdac_reg_no,  # Optional, keep as is
+            "pharmacy_name": sanitize_field(pharmacy_name),
+            "description": sanitize_field(description, to_lower=False),  # preserve casing
+            "state": sanitize_field(state),
+            "lga": sanitize_field(lga),
+            "street_address": sanitize_field(street_address, to_lower=False),
             "timestamp": datetime.utcnow().isoformat(),
             "image_url": image_url
         }
