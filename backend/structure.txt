@@ -13,7 +13,7 @@ nexahealth-backend/
 │   │   ├── db.py              # MongoDB/Firebase config (choose one)
 │   │   └── ml.py              # Risk prediction logic using joblib
 │   └── data/
-│       └── verified_drugs.json  # Mock NAFDAC DB
+│       └── verified_drugs.json  # NAFDAC DB
 │
 ├── ml/
 │   ├── train_model.py         # Train and export risk classifier

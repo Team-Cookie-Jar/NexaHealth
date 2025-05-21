@@ -1,28 +1,139 @@
-2. Drug Verification Logic
-Use verified_drugs.json and build the /verify-drug logic in verify.py.
+Backend:
 
-3. Report Submission + Risk Prediction
-Create /submit-report and /predict-risk in report.py. Use the ML model loaded from joblib in core/ml.py.
+Backend Developer Task Description – NexaHealth MVP
 
-4. MongoDB or Firebase Firestore
-Connect in core/db.py. Choose only one:
+Role: Backend Developer
+Goal: Build and manage the backend logic, APIs, and database for the core features of NexaHealth, ensuring smooth integration between the frontend, ML model, and data storage.
 
-MongoDB: use pymongo[srv]
 
-Firebase: use firebase-admin
+---
 
-✅ ML Integration Strategy
-core/ml.py:
-python
-Copy code
-import joblib
+Core Responsibilities
 
-vectorizer = joblib.load("ml/vectorizer.joblib")
-model = joblib.load("ml/risk_classifier.joblib")
+1. Drug Verification API
 
-def predict_risk(text: str) -> str:
-    x = vectorizer.transform([text])
-    prediction = model.predict(x)[0]
-    return prediction
-⚡ This keeps the backend fast — no heavy model loading.
+Input: Drug name + NAFDAC code from frontend.
 
+Logic:
+
+Check against a mock database (JSON, or MongoDB) of drug entries:
+
+verified: Show green status
+
+flagged: Show red (if multiple reports exist)
+
+unknown: Show yellow
+
+
+
+Output: JSON response with status (verified/unverified/flagged) and message.
+
+
+2. Suspicious Drug Report Submission
+
+Accept:
+
+Drug name
+
+Optional NAFDAC code
+
+Pharmacy name
+
+Text description
+
+Image upload (optional)
+
+Location (lat, lng)
+
+Timestamp (auto)
+
+
+Store in MongoDB or Firebase Firestore under a reports collection.
+
+Track how many reports a specific pharmacy has received.
+
+
+3. Map Endpoint for Flagged Pharmacies
+
+Logic: If a pharmacy has 3 or more reports, mark it as "flagged".
+
+Output: GeoJSON or structured data for frontend map (Leaflet/Google Maps).
+
+[
+  {
+    "pharmacy": "HopeMed Ikeja",
+    "location": { "lat": 6.603, "lng": 3.351 },
+    "report_count": 6,
+    "drug": "Coartem"
+  }
+]
+
+
+4. Connect to ML Risk Classifier
+
+Expose an endpoint like /predict-risk:
+
+Input: JSON with text description
+
+Output: risk: Low | Medium | High
+
+
+Integrate the locally trained model from the ML teammate (via joblib or shared function).
+
+
+5. Nearby Health & Pharmacy Suggestions
+
+Option A: Hardcode a list of verified pharmacies and clinics with lat/lng.
+
+Option B: Use Google Places API if time and internet access permit.
+
+Create endpoint like /get-nearby?lat=...&lng=...
+
+
+
+---
+
+Optional Extras (if time permits)
+
+Admin endpoint to view all reports or download CSV
+
+Simple authentication layer (not required for MVP)
+
+Enable CORS for frontend/ML model integration
+
+
+
+---
+
+Tech Stack Suggestion
+
+Framework: FastAPI (preferred for speed + ML integration) or Flask
+
+Database: MongoDB (Cloud or Local) or Firebase Firestore
+
+Deployment: Run locally or on Render/Heroku if needed
+
+Model Integration: Load from .joblib or call ML teammate’s local API
+
+
+
+---
+
+Deliverables
+
+RESTful API endpoints:
+
+/verify-drug
+
+/submit-report
+
+/get-flagged
+
+/predict-risk
+
+/get-nearby
+
+
+Database setup (MongoDB or Firebase)
+
+Swagger docs or Postman collection (optional but helpful)
