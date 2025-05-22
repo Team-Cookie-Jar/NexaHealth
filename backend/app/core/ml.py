@@ -34,23 +34,29 @@ for drug in verified_drugs:
 
 # === Core Functions ===
 
-def extract_keywords(user_input: str, cutoff=0.8):
-    """Extract known symptom keywords using exact and fuzzy matching, supporting multi-word symptoms."""
+def extract_keywords(user_input: str, cutoff=0.7):
+    """Extract symptom keywords using exact and fuzzy matching for full and partial inputs."""
     user_input_lower = user_input.lower()
     matched = set()
 
-    # First, check exact substring matches for all symptom keywords
+    # Step 1: Exact substring match for full keywords
     for symptom in risk_map.keys():
         if symptom in user_input_lower:
             matched.add(symptom)
 
-    # If no exact matches found, try fuzzy matching on words as fallback
+    # Step 2: Fuzzy match whole input against known keywords
     if not matched:
-        input_words = re.findall(r'\b\w+\b', user_input_lower)
-        for word in input_words:
+        close_matches = get_close_matches(user_input_lower, risk_map.keys(), n=3, cutoff=0.6)
+        matched.update(close_matches)
+
+    # Step 3: Fallback to word-by-word fuzzy match if still unmatched
+    if not matched:
+        words = re.findall(r'\b\w+\b', user_input_lower)
+        for word in words:
             close = get_close_matches(word, risk_map.keys(), n=1, cutoff=cutoff)
             if close:
                 matched.add(close[0])
+
     return list(matched)
 
 
@@ -76,9 +82,8 @@ def verify_drug_suggestions(drug_names):
     return verified_suggestions
 
 
-
 def calculate_risk(user_input: str):
-    """Compute cumulative risk and suggest drugs based on matched symptoms."""
+    """Compute hybrid risk score (out of 100) and suggest drugs based on matched symptoms."""
     matched_keywords = extract_keywords(user_input)
 
     if not matched_keywords:
@@ -90,31 +95,48 @@ def calculate_risk(user_input: str):
             "verified_recommendations": []
         }
 
-    # Sum risk weights
-    total_risk = sum(risk_map[key]["risk_weight"] for key in matched_keywords)
-    capped_risk = min(total_risk, 100)
+    # Get risk weights for matched keywords
+    weights = [risk_map[key].get("risk_weight", 0) for key in matched_keywords if key in risk_map]
+
+    if not weights:
+        return {
+            "risk_score": 0,
+            "risk_level": "Low",
+            "matched_keywords": matched_keywords,
+            "recommended_drugs": [],
+            "verified_recommendations": []
+        }
+
+    # === Hybrid Risk Calculation ===
+    max_weight = max(weights)
+    avg_weight = sum(weights) / len(weights)
+    hybrid_score = round((0.7 * max_weight) + (0.3 * avg_weight))
+    capped_risk = min(hybrid_score, 100)  # Ensure it's out of 100
 
     # Determine risk level
-    if capped_risk < 30:
-        risk_level = "Low"
-    elif 30 <= capped_risk <= 60:
-        risk_level = "Medium"
-    else:
+    if capped_risk >= 75:
         risk_level = "High"
+    elif capped_risk >= 40:
+        risk_level = "Moderate"
+    else:
+        risk_level = "Low"
 
-    # Collect suggested drugs from matched keywords
+    # === Suggest Drugs ===
     suggested_drugs = set()
-    for key in matched_keywords:
-        suggested_drugs.update(risk_map[key]["common_drugs"])
 
-    # Match symptom keywords to ingredients in verified drugs (use-case match)
+    # Add common drugs from matched keywords
+    for key in matched_keywords:
+        if key in risk_map:
+            suggested_drugs.update(risk_map[key].get("common_drugs", []))
+
+    # Match ingredients from verified drugs
     for drug in verified_drugs:
         ingredients = drug.get("ingredients", [])
         for ing in ingredients:
             if any(word in ing.lower() for word in matched_keywords):
                 suggested_drugs.add(drug["product_name"])
 
-    # Verify suggested drugs
+    # Final verification of drug suggestions
     verified_recommendations = verify_drug_suggestions(suggested_drugs)
 
     return {

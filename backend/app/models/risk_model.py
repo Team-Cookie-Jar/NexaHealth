@@ -13,3 +13,6 @@ class RiskPredictionResponse(BaseModel):
     risk: str
     risk_score: int
     suggested_drugs: List[SuggestedDrug]
+
+
+

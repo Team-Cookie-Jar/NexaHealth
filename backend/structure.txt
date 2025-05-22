@@ -1,24 +1,28 @@
 nexahealth-backend/
 │
 ├── app/
-│   ├── main.py                # FastAPI entry point
+│   ├── main.py
 │   ├── routers/
-│   │   ├── verify.py          # Drug verification endpoint
-│   │   ├── report.py          # Report submission + prediction
-│   │   ├── map.py             # Flagged pharmacy map
-│   │   └── nearby.py          # Nearby clinics/pharmacies
+│   │   ├── verify.py
+│   │   ├── report.py
+│   │   ├── map.py
+│   │   ├── nearby.py
+│   │   └── diagnosis.py        # NEW: symptom fuzzy matching & diagnosis
 │   ├── models/
-│   │   └── report_model.py    # Pydantic schemas for request/response
+│   │   ├── report_model.py
+│   │   └── diagnosis_model.py  # NEW: Pydantic models for diagnosis endpoint
 │   ├── core/
-│   │   ├── db.py              # MongoDB/Firebase config (choose one)
-│   │   └── ml.py              # Risk prediction logic using joblib
+│   │   ├── db.py
+│   │   ├── ml.py
+│   │   └── symptom_matcher.py  # NEW: fuzzy matching & CSV loading logic
 │   └── data/
-│       └── verified_drugs.json  # NAFDAC DB
+│       ├── verified_drugs.json
+│       └── symptom_data.csv    # Place your symptom CSV here
 │
 ├── ml/
-│   ├── train_model.py         # Train and export risk classifier
-│   ├── dataset.csv            # Synthetic dataset
-│   └── risk_classifier.joblib # Saved model
+│   ├── train_model.py
+│   ├── dataset.csv
+│   └── risk_classifier.joblib
 │
 ├── requirements.txt
 └── README.md
