@@ -32,5 +32,6 @@ async def predict_risk(request: SymptomInput):
     return RiskPredictionResponse(
         risk=result["risk_level"],
         risk_score=result["risk_score"],
+        matched_keywords=result["matched_keywords"],  # ➕ Include matched keywords
         suggested_drugs=suggested_drugs
     )

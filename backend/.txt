@@ -83,10 +83,7 @@ Integrate the locally trained model from the ML teammate (via joblib or shared f
 
 
 5. Nearby Health & Pharmacy Suggestions
-
-Option A: Hardcode a list of verified pharmacies and clinics with lat/lng.
-
-Option B: Use Google Places API if time and internet access permit.
+Option: Use Google Places API if time and internet access permit.
 
 Create endpoint like /get-nearby?lat=...&lng=...
 
@@ -101,20 +98,6 @@ Admin endpoint to view all reports or download CSV
 Simple authentication layer (not required for MVP)
 
 Enable CORS for frontend/ML model integration
-
-
-
----
-
-Tech Stack Suggestion
-
-Framework: FastAPI (preferred for speed + ML integration) or Flask
-
-Database: MongoDB (Cloud or Local) or Firebase Firestore
-
-Deployment: Run locally or on Render/Heroku if needed
-
-Model Integration: Load from .joblib or call ML teammate’s local API
 
 
 

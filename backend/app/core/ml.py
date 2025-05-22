@@ -4,6 +4,13 @@ import json
 from difflib import get_close_matches
 from pathlib import Path
 
+import nltk
+from nltk.stem import PorterStemmer
+
+#nltk.download('punkt')  # Only once, to ensure word tokenization works
+stemmer = PorterStemmer()
+
+
 # === Paths ===
 RISK_DATA_PATH = "C:/Users/USER/PycharmProjects/NexaHealth/backend/app/data/keyword_risk_map.csv"
 VERIFIED_DRUGS_PATH = "C:/Users/USER/PycharmProjects/NexaHealth/backend/app/data/verified_drugs.json"
@@ -27,35 +34,45 @@ with open(VERIFIED_DRUGS_PATH, "r", encoding="utf-8") as file:
 # Flatten a set of all verified ingredient names (normalized for comparison)
 verified_ingredients = set()
 for drug in verified_drugs:
-    # fixed typo 'i ngredients' => 'ingredients' if needed
-    ingredients = drug.get("ingredients") or drug.get("i ngredients")
+    ingredients = drug.get("ingredients") or drug.get("i ngredients")  # fallback for typo
     if ingredients:
         verified_ingredients.update(ing.strip().lower() for ing in ingredients)
 
 # === Core Functions ===
 
 def extract_keywords(user_input: str, cutoff=0.7):
-    """Extract symptom keywords using exact and fuzzy matching for full and partial inputs."""
+    """Extract symptom keywords using exact, fuzzy, and stemmed matches."""
     user_input_lower = user_input.lower()
     matched = set()
 
-    # Step 1: Exact substring match for full keywords
+    # Stemmed keyword map for better matching
+    stemmed_risk_map = {stemmer.stem(k): k for k in risk_map.keys()}
+
+    # Step 1: Exact substring match
     for symptom in risk_map.keys():
         if symptom in user_input_lower:
             matched.add(symptom)
 
-    # Step 2: Fuzzy match whole input against known keywords
+    # Step 2: Fuzzy match full input
     if not matched:
         close_matches = get_close_matches(user_input_lower, risk_map.keys(), n=3, cutoff=0.6)
         matched.update(close_matches)
 
-    # Step 3: Fallback to word-by-word fuzzy match if still unmatched
+    # Step 3: Word-by-word fuzzy + stem match
     if not matched:
         words = re.findall(r'\b\w+\b', user_input_lower)
         for word in words:
+            stemmed_word = stemmer.stem(word)
+
+            # Fuzzy match against original keywords
             close = get_close_matches(word, risk_map.keys(), n=1, cutoff=cutoff)
             if close:
                 matched.add(close[0])
+                continue
+
+            # Match against stemmed keys
+            if stemmed_word in stemmed_risk_map:
+                matched.add(stemmed_risk_map[stemmed_word])
 
     return list(matched)
 
@@ -64,7 +81,6 @@ def extract_keywords(user_input: str, cutoff=0.7):
 def verify_drug_suggestions(drug_names):
     """Cross-reference recommended drugs with verified product names or ingredients."""
     verified_suggestions = []
-
     product_names = {drug["product_name"].lower(): drug for drug in verified_drugs}
 
     for drug_name in drug_names:
@@ -111,7 +127,7 @@ def calculate_risk(user_input: str):
     max_weight = max(weights)
     avg_weight = sum(weights) / len(weights)
     hybrid_score = round((0.7 * max_weight) + (0.3 * avg_weight))
-    capped_risk = min(hybrid_score, 100)  # Ensure it's out of 100
+    capped_risk = min(hybrid_score, 100)
 
     # Determine risk level
     if capped_risk >= 75:
