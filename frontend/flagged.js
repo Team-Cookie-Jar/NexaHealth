@@ -1,4 +1,4 @@
-// flagged.js - JavaScript for flagged.html
+// flagged.js - JavaScript for flagged.html with real API calls
 
 document.addEventListener('DOMContentLoaded', function() {
     // Mobile Menu Toggle
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mainMap);
 
-    // Add sample markers for flagged pharmacies
+    // Icon for flagged pharmacies
     const pharmacyIcon = L.icon({
         iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
         iconSize: [32, 32],
@@ -52,84 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
         popupAnchor: [0, -32]
     });
 
-    // Sample data - in a real app, this would come from your API
-    const samplePharmacies = [
-        {
-            pharmacy: "HealthPlus Pharmacy",
-            state: "Lagos",
-            lga: "Ikeja",
-            street_address: "123 Allen Avenue",
-            report_count: 8,
-            drugs: ["Paracetamol", "Coartem"],
-            lat: 6.6018,
-            lng: 3.3515
-        },
-        {
-            pharmacy: "MedPlus Pharmacy",
-            state: "Lagos",
-            lga: "Victoria Island",
-            street_address: "45A Adeola Odeku",
-            report_count: 5,
-            drugs: ["Amoxicillin", "Ibuprofen"],
-            lat: 6.4281,
-            lng: 3.4219
-        },
-        {
-            pharmacy: "Alpha Pharmacy",
-            state: "Abuja",
-            lga: "Wuse",
-            street_address: "22 Aminu Kano Crescent",
-            report_count: 3,
-            drugs: ["Paracetamol"],
-            lat: 9.0765,
-            lng: 7.4726
-        },
-        {
-            pharmacy: "Merit Healthcare",
-            state: "Rivers",
-            lga: "Port Harcourt",
-            street_address: "17 Aba Road",
-            report_count: 6,
-            drugs: ["Coartem", "Amoxicillin"],
-            lat: 4.8156,
-            lng: 7.0498
-        },
-        {
-            pharmacy: "LifeCare Pharmacy",
-            state: "Kano",
-            lga: "Nasarawa",
-            street_address: "12 Zaria Road",
-            report_count: 4,
-            drugs: ["Ibuprofen", "Paracetamol"],
-            lat: 12.0022,
-            lng: 8.5136
-        }
-    ];
-
-    // Add markers to main map
-    samplePharmacies.forEach(pharmacy => {
-        const marker = L.marker([pharmacy.lat, pharmacy.lng], {icon: pharmacyIcon}).addTo(mainMap);
-
-        let drugsList = '';
-        pharmacy.drugs.forEach(drug => {
-            drugsList += `<span class="badge bg-red-100 text-red-800">${drug}</span>`;
-        });
-
-        marker.bindPopup(`
-            <h3>${pharmacy.pharmacy}</h3>
-            <p><strong>Location:</strong> ${pharmacy.street_address}, ${pharmacy.lga}, ${pharmacy.state}</p>
-            <p><strong>Reports:</strong> ${pharmacy.report_count}</p>
-            <div class="mt-2">
-                <p class="font-medium">Flagged Drugs:</p>
-                <div class="mt-1">${drugsList}</div>
-            </div>
-            <div class="mt-3 text-center">
-                <button class="text-sm bg-primary text-white px-3 py-1 rounded hover:bg-secondary transition">
-                    View Details
-                </button>
-            </div>
-        `);
-    });
+    // Fetch and display flagged pharmacies
+    fetchFlaggedPharmacies();
 
     // Nearby Pharmacies Functionality
     const getLocationBtn = document.getElementById('get-location-btn');
@@ -151,6 +75,182 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (showMapBtn) {
         showMapBtn.addEventListener('click', toggleMap);
+    }
+
+    function fetchFlaggedPharmacies() {
+        const pharmacyResults = document.getElementById('pharmacy-results');
+        if (!pharmacyResults) return;
+
+        // Show loading state
+        pharmacyResults.innerHTML = `
+            <tr class="animate-pulse">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-4 bg-gray-200 rounded w-full"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-8 bg-gray-200 rounded w-20"></div>
+                </td>
+            </tr>
+            <tr class="animate-pulse">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-4 bg-gray-200 rounded w-full"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="h-8 bg-gray-200 rounded w-20"></div>
+                </td>
+            </tr>
+        `;
+
+        // Fetch flagged pharmacies from API
+        fetch('https://localhost:8000/get-flagged')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update the table with real data
+                pharmacyResults.innerHTML = '';
+
+                if (data.flagged_pharmacies && data.flagged_pharmacies.length > 0) {
+                    data.flagged_pharmacies.forEach(pharmacy => {
+                        let drugsList = '';
+                        if (pharmacy.drugs && pharmacy.drugs.length > 0) {
+                            pharmacy.drugs.forEach(drug => {
+                                drugsList += `<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${drug}</span>`;
+                            });
+                        }
+
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-gray-50';
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="font-medium">${pharmacy.pharmacy}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div>${pharmacy.street_address || 'Address not available'}, ${pharmacy.lga || 'N/A'}</div>
+                                <div class="text-sm text-gray-500">${pharmacy.state || 'N/A'}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">${pharmacy.report_count} reports</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-wrap">${drugsList || 'No drugs listed'}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <button class="text-primary hover:text-secondary font-medium view-pharmacy-details" data-pharmacy="${encodeURIComponent(pharmacy.pharmacy)}">Details</button>
+                            </td>
+                        `;
+
+                        pharmacyResults.appendChild(row);
+                    });
+
+                    // Add markers to the map
+                    data.flagged_pharmacies.forEach(pharmacy => {
+                        if (pharmacy.lat && pharmacy.lng) {
+                            const marker = L.marker([pharmacy.lat, pharmacy.lng], {icon: pharmacyIcon}).addTo(mainMap);
+
+                            let drugsList = '';
+                            if (pharmacy.drugs && pharmacy.drugs.length > 0) {
+                                pharmacy.drugs.forEach(drug => {
+                                    drugsList += `<span class="badge bg-red-100 text-red-800">${drug}</span>`;
+                                });
+                            }
+
+                            marker.bindPopup(`
+                                <h3>${pharmacy.pharmacy}</h3>
+                                <p><strong>Location:</strong> ${pharmacy.street_address || 'N/A'}, ${pharmacy.lga || 'N/A'}, ${pharmacy.state || 'N/A'}</p>
+                                <p><strong>Reports:</strong> ${pharmacy.report_count}</p>
+                                <div class="mt-2">
+                                    <p class="font-medium">Flagged Drugs:</p>
+                                    <div class="mt-1">${drugsList || 'None'}</div>
+                                </div>
+                                <div class="mt-3 text-center">
+                                    <button class="text-sm bg-primary text-white px-3 py-1 rounded hover:bg-secondary transition view-pharmacy-details" data-pharmacy="${encodeURIComponent(pharmacy.pharmacy)}">
+                                        View Details
+                                    </button>
+                                </div>
+                            `);
+                        }
+                    });
+
+                    // Add event listeners for details buttons
+                    document.querySelectorAll('.view-pharmacy-details').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const pharmacyName = decodeURIComponent(this.getAttribute('data-pharmacy'));
+                            fetchPharmacyDetails(pharmacyName);
+                        });
+                    });
+                } else {
+                    pharmacyResults.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                No flagged pharmacies found
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                // Update summary stats
+                if (data.summary) {
+                    document.getElementById('total-pharmacies').textContent = data.summary.total_flagged_pharmacies || '0';
+                    document.getElementById('total-reports').textContent = data.summary.total_reports || '0';
+
+                    if (data.summary.top_drugs && data.summary.top_drugs.length > 0) {
+                        document.getElementById('top-drug').textContent = data.summary.top_drugs[0].drug_name || 'None';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching flagged pharmacies:', error);
+                pharmacyResults.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-red-500">
+                            Error loading flagged pharmacies. Please try again later.
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+
+    function fetchPharmacyDetails(pharmacyName) {
+        // Fetch detailed reports for a specific pharmacy
+        fetch(`https://localhost:8000/get-flagged/${encodeURIComponent(pharmacyName)}/reports`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Here you would show the detailed reports in a modal or new page
+                console.log('Pharmacy details:', data);
+                alert(`Showing ${data.report_count} reports for ${pharmacyName}`);
+                // In a real app, you would display this data properly
+            })
+            .catch(error => {
+                console.error('Error fetching pharmacy details:', error);
+                alert(`Error loading details for ${pharmacyName}`);
+            });
     }
 
     function getNearbyPharmacies() {
@@ -197,63 +297,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchNearbyPlaces(lat, lng) {
-        // In a real app, you would call your backend API endpoint
-        fetch(`http/get-nearby?lat=${lat}&lng=${lng}`)
-          .then(response => response.json())
-          .then(data => displayNearbyPlaces(data))
-           .catch(error => {
-                console.error('Error fetching nearby places:', error);
-                 showError('Network error', 'Failed to fetch nearby places. Please try again later.');
-                 loadingSpinner.classList.add('hidden');
-           });
-
-        // For demo purposes, we'll use a mock response
-        setTimeout(() => {
-            const mockResponse = [
-                {
-                    "name": "Life Pharmacy",
-                    "type": "Pharmacy",
-                    "location": {
-                        "lat": lat + 0.001,
-                        "lng": lng + 0.001
-                    },
-                    "address": "123 Powerline Street, Akobo, Ibadan, Oyo",
-                    "phone": "+2348012345678",
-                    "website": "http://lifepharmacy.ng",
-                    "opening_hours": "Mo-Sa 08:00-20:00",
-                    "distance_meters": 450
-                },
-                {
-                    "name": "General Hospital",
-                    "type": "Hospital",
-                    "location": {
-                        "lat": lat - 0.002,
-                        "lng": lng + 0.0015
-                    },
-                    "address": "Akobo Ojurin, Lagelu, Ibadan, Oyo",
-                    "phone": "+2348023456789",
-                    "website": null,
-                    "opening_hours": "24/7",
-                    "distance_meters": 800
-                },
-                {
-                    "name": "MedPlus Pharmacy",
-                    "type": "Pharmacy",
-                    "location": {
-                        "lat": lat + 0.003,
-                        "lng": lng - 0.001
-                    },
-                    "address": "45 Ring Road, Ibadan, Oyo",
-                    "phone": "+2348034567890",
-                    "website": "http://medpluspharmacy.com",
-                    "opening_hours": "Mo-Su 07:00-22:00",
-                    "distance_meters": 1200
+        fetch(`https://localhost:8000/get-nearby?lat=${lat}&lng=${lng}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-            ];
-
-            nearbyPlaces = mockResponse;
-            displayNearbyPlaces(mockResponse);
-        }, 1500);
+                return response.json();
+            })
+            .then(data => {
+                nearbyPlaces = data;
+                displayNearbyPlaces(data);
+            })
+            .catch(error => {
+                console.error('Error fetching nearby places:', error);
+                showError('Network error', 'Failed to fetch nearby places. Please try again later.');
+                loadingSpinner.classList.add('hidden');
+            });
     }
 
     function displayNearbyPlaces(places) {
@@ -319,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="mt-4">
                         <div class="flex items-start">
                             <i class="fas fa-map-marker-alt text-gray-500 mt-1 mr-2"></i>
-                            <p class="text-gray-600">${place.address}</p>
+                            <p class="text-gray-600">${place.address || 'Address not available'}</p>
                         </div>
                         
                         ${place.distance_meters ? `
@@ -346,6 +405,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Show the map button if we have results
         showMapBtn.classList.remove('hidden');
+
+        // Add click handlers for "View on Map" buttons
+        document.querySelectorAll('.view-on-map').forEach(button => {
+            button.addEventListener('click', function() {
+                const lat = parseFloat(this.getAttribute('data-lat'));
+                const lng = parseFloat(this.getAttribute('data-lng'));
+
+                if (!mapContainer.classList.contains('hidden')) {
+                    nearbyMap.setView([lat, lng], 16);
+                } else {
+                    toggleMap();
+                    setTimeout(() => {
+                        nearbyMap.setView([lat, lng], 16);
+                    }, 300);
+                }
+            });
+        });
     }
 
     function toggleMap() {
@@ -401,26 +477,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }).addTo(nearbyMap)
               .bindPopup(`
                 <h3 class="font-bold">${place.name}</h3>
-                <p class="text-sm">${place.address}</p>
+                <p class="text-sm">${place.address || 'Address not available'}</p>
                 ${place.phone ? `<p class="text-sm mt-1"><i class="fas fa-phone-alt mr-1"></i> ${place.phone}</p>` : ''}
               `);
-        });
-
-        // Add click handlers for "View on Map" buttons
-        document.querySelectorAll('.view-on-map').forEach(button => {
-            button.addEventListener('click', function() {
-                const lat = parseFloat(this.getAttribute('data-lat'));
-                const lng = parseFloat(this.getAttribute('data-lng'));
-
-                if (!mapContainer.classList.contains('hidden')) {
-                    nearbyMap.setView([lat, lng], 16);
-                } else {
-                    toggleMap();
-                    setTimeout(() => {
-                        nearbyMap.setView([lat, lng], 16);
-                    }, 300);
-                }
-            });
         });
     }
 
@@ -429,48 +488,4 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('error-message').textContent = message;
         locationError.classList.remove('hidden');
     }
-
-    // For demo purposes, we'll simulate fetching flagged pharmacy data
-    setTimeout(() => {
-        // Update the pharmacy results table
-        const pharmacyResults = document.getElementById('pharmacy-results');
-        if (pharmacyResults) {
-            pharmacyResults.innerHTML = '';
-
-            samplePharmacies.forEach(pharmacy => {
-                let drugsList = '';
-                pharmacy.drugs.forEach(drug => {
-                    drugsList += `<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${drug}</span>`;
-                });
-
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="font-medium">${pharmacy.pharmacy}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div>${pharmacy.street_address}, ${pharmacy.lga}</div>
-                        <div class="text-sm text-gray-500">${pharmacy.state}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">${pharmacy.report_count} reports</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="flex flex-wrap">${drugsList}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <button class="text-primary hover:text-secondary font-medium">Details</button>
-                    </td>
-                `;
-
-                pharmacyResults.appendChild(row);
-            });
-        }
-
-        // Update summary stats
-        document.getElementById('total-pharmacies').textContent = samplePharmacies.length;
-        document.getElementById('total-reports').textContent = samplePharmacies.reduce((sum, p) => sum + p.report_count, 0);
-        document.getElementById('top-drug').textContent = 'Paracetamol';
-    }, 1000);
 });
