@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             // Call API
-            const response = await fetch('http://localhost:8000/verify-drug', {
+            const response = await fetch('https://lyre-4m8l.onrender.com/verify-drug', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

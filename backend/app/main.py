@@ -10,7 +10,7 @@ app = FastAPI(title="NexaHealth API")
 # Allow CORS from your frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:63342"],  # or ["*"] to allow all
+    allow_origins=["http://localhost:63342","https://nexahealth.vercel.app"],  # or ["*"] to allow all
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

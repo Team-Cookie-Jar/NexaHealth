@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
         params.append('limit', currentSearchParams.limit);
 
         // Fetch flagged pharmacies from API with search parameters
-        fetch(`http://localhost:8000/get-flagged?${params.toString()}`)
+        fetch(`https://lyre-4m8l.onrender.com/get-flagged?${params.toString()}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function fetchPharmacyDetails(pharmacyName) {
         // Fetch detailed reports for a specific pharmacy
-        fetch(`http://localhost:8000/get-flagged/${encodeURIComponent(pharmacyName)}/reports`)
+        fetch(`https://lyre-4m8l.onrender.com/get-flagged/${encodeURIComponent(pharmacyName)}/reports`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchNearbyPlaces(lat, lng) {
-        fetch(`http://localhost:8000/get-nearby?lat=${lat}&lng=${lng}`)
+        fetch(`https://lyre-4m8l.onrender.com/get-nearby?lat=${lat}&lng=${lng}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');

@@ -334,7 +334,7 @@ if (reportForm) {
                 formData.append('image', dropzone.files[0]);
             }
 
-            const response = await fetch('http://localhost:8000/submit-report', {
+            const response = await fetch('https://lyre-4m8l.onrender.com/submit-report', {
                 method: 'POST',
                 body: formData
             });

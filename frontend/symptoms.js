@@ -57,7 +57,7 @@ symptomForm.addEventListener('submit', async function(e) {
 
     try {
         // Call the backend API
-        const response = await fetch('http://localhost:8000/predict-risk', {
+        const response = await fetch('https://lyre-4m8l.onrender.com/predict-risk', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
