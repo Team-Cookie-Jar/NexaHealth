@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexaHealth | Verify, Report, Protect</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#1e40af',
+                        accent: '#3b82f6',
+                        dark: '#1e293b',
+                        light: '#f8fafc',
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 1s ease-in-out',
+                        'slide-up': 'slideUp 0.8s ease-out',
+                        'pulse-slow': 'pulse 3s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/css">
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(30, 64, 175, 0.9) 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .nav-link::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 2px;
+            background: #3b82f6;
+            transition: width 0.3s;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .hamburger-line {
+            transition: all 0.3s;
+        }
+        .hamburger-active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+        .hamburger-active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
+        }
+    </style>
+</head>
+<body class="font-sans text-dark bg-light">
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white shadow-md z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <a href="#" class="text-2xl font-bold text-primary font-serif">Nexa<span class="text-secondary">Health</span></a>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="#home" class="nav-link text-dark hover:text-primary font-medium transition">Home</a>
+                    <a href="verify.html" class="nav-link text-dark hover:text-primary font-medium transition">Verify</a>
+                    <a href="report.html" class="nav-link text-dark hover:text-primary font-medium transition">Report</a>
+                    <a href="flagged.html" class="nav-link text-dark hover:text-primary font-medium transition">flagged</a>
+                    <a href="symptoms.html" class="nav-link text-dark hover:text-primary font-medium transition">Symptom Check</a>
+                </div>
+
+                <div class="hidden md:block">
+                    <a href="#verify" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all shadow-lg hover:shadow-xl">Check a Drug</a>
+                </div>
+
+                <!-- Mobile Hamburger -->
+                <div class="md:hidden">
+                    <button id="hamburger" class="text-dark focus:outline-none">
+                        <div class="hamburger-line w-6 h-0.5 bg-dark mb-1.5"></div>
+                        <div class="hamburger-line w-6 h-0.5 bg-dark mb-1.5"></div>
+                        <div class="hamburger-line w-6 h-0.5 bg-dark"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white py-4 px-6 absolute w-full left-0 shadow-lg">
+            <div class="flex flex-col space-y-4">
+                <a href="#home" class="text-dark hover:text-primary font-medium transition">Home</a>
+                <a href="verify.html" class="text-dark hover:text-primary font-medium transition">Verify</a>
+                <a href="report.html" class="text-dark hover:text-primary font-medium transition">Report</a>
+                <a href="flagged.html" class="text-dark hover:text-primary font-medium transition">Flagged</a>
+                <a href="symptoms.html" class="text-dark hover:text-primary font-medium transition">Symptom Check</a>
+                <a href="verify.html" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all text-center">Check a Drug</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="pt-32 pb-20 md:pt-40 md:pb-32 hero-gradient text-white">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-12 md:mb-0 animation-fade-in">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold font-serif mb-6 leading-tight">
+                        Verify, Report,<br>
+                        <span class="text-accent">Protect</span> Your Health
+                    </h1>
+                    <p class="text-lg md:text-xl mb-8 opacity-90">
+                        NexaHealth helps you verify medication safety, report suspicious drugs, and find trusted healthcare providers in Nigeria.
+                    </p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                        <a href="verify.html" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-semibold text-center transition-all shadow-lg hover:shadow-xl">
+                            Verify a Drug <i class="fas fa-pills ml-2"></i>
+                        </a>
+                        <a href="report.html" class="border-2 border-white text-white hover:bg-white hover:text-primary px-8 py-3 rounded-full font-semibold text-center transition-all">
+                            Report Suspicious <i class="fas fa-flag ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="md:w-1/2 animation-slide-up">
+                    <div class="relative">
+                        <img src="images/Nexahealth_image.jpg"
+                             alt="Doctor with medication"
+                             class="rounded-lg shadow-2xl w-full h-auto max-w-md mx-auto">
+                        <div class="absolute -bottom-6 -right-6 bg-white p-4 rounded-lg shadow-lg hidden md:block">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-primary">97%</div>
+                                <div class="text-sm text-gray-600">Accuracy Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div class="p-8 rounded-xl bg-gray-50 hover:bg-primary hover:text-white transition-all duration-300 card-hover">
+                    <div class="text-4xl font-bold text-primary mb-2 hover:text-white">400+</div>
+                    <div class="text-lg font-medium">Verified Drugs</div>
+                    <div class="text-gray-500 mt-2 hover:text-white">In our database</div>
+                </div>
+                <div class="p-8 rounded-xl bg-gray-50 hover:bg-primary hover:text-white transition-all duration-300 card-hover">
+                    <div class="text-4xl font-bold text-primary mb-2 hover:text-white">500+</div>
+                    <div class="text-lg font-medium">Reports Processed</div>
+                    <div class="text-gray-500 mt-2 hover:text-white">By our community</div>
+                </div>
+                <div class="p-8 rounded-xl bg-gray-50 hover:bg-primary hover:text-white transition-all duration-300 card-hover">
+                    <div class="text-4xl font-bold text-primary mb-2 hover:text-white">97%</div>
+                    <div class="text-lg font-medium">User Satisfaction</div>
+                    <div class="text-gray-500 mt-2 hover:text-white">Accuracy rate</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Verification Section -->
+    <section id="verify" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold font-serif mb-4">Drug Verification</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Check if your medication is verified by NAFDAC or has been reported as suspicious</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-xl p-8 max-w-3xl mx-auto">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
+                        <label for="drug-name" class="block text-sm font-medium text-gray-700 mb-1">Drug Name</label>
+                        <input type="text" id="drug-name" placeholder="e.g. Coartem 20mg"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition">
+                    </div>
+                    <div class="flex-1">
+                        <label for="nafdac-code" class="block text-sm font-medium text-gray-700 mb-1">NAFDAC Number (Optional)</label>
+                        <input type="text" id="nafdac-code" placeholder="e.g. NAFDAC-AB123XYZ"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition">
+                    </div>
+                </div>
+                <button class="mt-6 w-full bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center justify-center">
+                    Verify Drug <i class="fas fa-search ml-2"></i>
+                </button>
+
+                <!-- Verification Result (Hidden by default) -->
+                <div id="verification-result" class="mt-8 hidden">
+                    <div class="p-6 rounded-lg bg-green-50 border border-green-200">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-check-circle text-3xl text-green-500"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-lg font-medium text-green-800">Verified Medication</h3>
+                                <div class="mt-2 text-green-700">
+                                    <p><strong>Drug Name:</strong> <span id="result-name">Coartem 20mg</span></p>
+                                    <p><strong>NAFDAC Number:</strong> <span id="result-code">NAFDAC-AB123XYZ</span></p>
+                                    <p><strong>Status:</strong> <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Verified</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Report Section -->
+    <section id="report" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-12 md:mb-0">
+                    <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=880&q=80"
+                         alt="Reporting suspicious drugs"
+                         class="rounded-lg shadow-xl w-full h-auto max-w-md mx-auto">
+                </div>
+                <div class="md:w-1/2 md:pl-12">
+                    <h2 class="text-3xl md:text-4xl font-bold font-serif mb-6">Report Suspicious Drugs</h2>
+                    <p class="text-lg text-gray-600 mb-8">
+                        Help protect others by reporting medications that seem fake, ineffective, or dangerous. Your report could save lives.
+                    </p>
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                            <span class="text-gray-700">Anonymous reporting available</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                            <span class="text-gray-700">Contributes to community safety</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                            <span class="text-gray-700">Helps authorities track counterfeit drugs</span>
+                        </li>
+                    </ul>
+                    <a href="report.html" class="inline-block bg-primary hover:bg-secondary text-white px-8 py-3 rounded-full font-semibold transition-all shadow-lg hover:shadow-xl">
+                        Report Now <i class="fas fa-flag ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- flagged Section -->
+    <section id="flagged" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold font-serif mb-4">Flagged Pharmacies map</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">See locations with multiple reports of suspicious drugs in your area</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-xl p-6">
+                <!-- flagged Placeholder - In a real implementation, you would use Leaflet.js or Google maps API -->
+                <div class="h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <div class="text-center p-6">
+                        <i class="fas fa-map-marked-alt text-4xl text-primary mb-4"></i>
+                        <h3 class="text-xl font-bold mb-2">Interactive map Coming Soon</h3>
+                        <p class="text-gray-600">This will display flagged pharmacies based on community reports</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-center mb-3">
+                            <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                            <h4 class="font-bold">Lekki Pharmacy</h4>
+                        </div>
+                        <p class="text-gray-600">8 reports of fake Coartem in the last month</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-center mb-3">
+                            <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                            <h4 class="font-bold">Ikeja Medical Store</h4>
+                        </div>
+                        <p class="text-gray-600">3 reports of ineffective Paracetamol</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-center mb-3">
+                            <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                            <h4 class="font-bold">Victoria Island Drugmart</h4>
+                        </div>
+                        <p class="text-gray-600">5 reports of suspicious Amoxicillin</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 hero-gradient text-white">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold font-serif mb-6">Join the Fight Against Fake Drugs</h2>
+            <p class="text-xl max-w-2xl mx-auto mb-8 opacity-90">
+                Together we can create a safer healthcare environment in Nigeria. Verify your drugs today.
+            </p>
+            <a href="verify.html" class="inline-block bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-semibold transition-all shadow-lg hover:shadow-xl">
+                Verify a Drug Now <i class="fas fa-pills ml-2"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-2xl font-bold font-serif mb-4">Nexa<span class="text-primary">Health</span></h3>
+                    <p class="text-gray-400">Verify, report, and protect against fake medications in Nigeria.</p>
+                    <div class="flex space-x-4 mt-6">
+                        <a href="#" class="text-gray-400 hover:text-primary transition"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-primary transition"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-primary transition"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-primary transition"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="Index.html" class="text-gray-400 hover:text-primary transition">Home</a></li>
+                        <li><a href="verify.html" class="text-gray-400 hover:text-primary transition">Verify Drugs</a></li>
+                        <li><a href="report.html" class="text-gray-400 hover:text-primary transition">Report Drugs</a></li>
+                        <li><a href="flagged.html" class="text-gray-400 hover:text-primary transition">Flagged Pharmacies</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">NAFDAC Guidelines</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Drug Safety Tips</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Contact</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-start">
+                            <i class="fas fa-flagged-marker-alt mt-1 mr-3"></i>
+                            <span>FUTA,Ondo state, Nigeria</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-phone-alt mt-1 mr-3"></i>
+                            <span>+2349041385402</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-envelope mt-1 mr-3"></i>
+                            <span>Team Cookie Jar</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500">
+                <p>&copy; 2025 NexaHealth. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile Menu Toggle
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('hamburger-active');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Close mobile menu when clicking a link
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('hamburger-active');
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Verification form demo (would be connected to backend in real implementation)
+        document.querySelector('#verify button').addEventListener('click', function() {
+            const drugName = document.getElementById('drug-name').value;
+            const nafdacCode = document.getElementById('nafdac-code').value;
+
+            if (drugName || nafdacCode) {
+                // In a real app, this would be an API call
+                document.getElementById('result-name').textContent = drugName || 'Not specified';
+                document.getElementById('result-code').textContent = nafdacCode || 'Not provided';
+                document.getElementById('verification-result').classList.remove('hidden');
+
+                // Scroll to results
+                setTimeout(() => {
+                    document.getElementById('verification-result').scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }, 300);
+            }
+        });
+
+        // Animation on scroll
+        const animateOnScroll = () => {
+            const elements = document.querySelectorAll('.animation-fade-in, .animation-slide-up');
+
+            elements.forEach(element => {
+                const elementPosition = element.getBoundingClientRect().top;
+                const screenPosition = window.innerHeight / 1.2;
+
+                if (elementPosition < screenPosition) {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }
+            });
+        };
+
+        // Set initial state for animated elements
+        document.querySelectorAll('.animation-fade-in').forEach(el => {
+            el.style.opacity = '0';
+        });
+
+        document.querySelectorAll('.animation-slide-up').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+        });
+
+        // Run once on load
+        animateOnScroll();
+
+        // Then on scroll
+        window.addEventListener('scroll', animateOnScroll);
+    </script>
+</body>
+</html>

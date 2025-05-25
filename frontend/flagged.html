@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flagged Pharmacies | NexaHealth</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#1e40af',
+                        accent: '#3b82f6',
+                        dark: '#1e293b',
+                        light: '#f8fafc',
+                        lowRisk: '#10b981',
+                        mediumRisk: '#f59e0b',
+                        highRisk: '#ef4444'
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 1s ease-in-out',
+                        'slide-up': 'slideUp 0.8s ease-out',
+                        'pulse-slow': 'pulse 3s infinite',
+                        'bounce-slow': 'bounce 2s infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        pulse: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.5' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/css">
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(30, 64, 175, 0.9) 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .nav-link::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 2px;
+            background: #3b82f6;
+            transition: width 0.3s;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        .hamburger-line {
+            transition: all 0.3s;
+        }
+        .hamburger-active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+        .hamburger-active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger-active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
+        }
+        .flagged-container {
+            height: 500px;
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        .risk-badge {
+            transition: all 0.3s;
+        }
+        .risk-badge:hover {
+            transform: scale(1.05);
+        }
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 0.5rem !important;
+        }
+        .leaflet-popup-content {
+            margin: 0.75rem !important;
+        }
+        .leaflet-popup-content h3 {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .leaflet-popup-content p {
+            margin-bottom: 0.25rem;
+        }
+        .leaflet-popup-content .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body class="font-sans text-dark bg-light">
+    <!-- Navigation -->
+    <nav class="fixed w-full bg-white shadow-md z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <a href="index.html" class="text-2xl font-bold text-primary font-serif">Nexa<span class="text-secondary">Health</span></a>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex space-x-8">
+                    <a href="index.html" class="nav-link text-dark hover:text-primary font-medium transition">Home</a>
+                    <a href="verify.html" class="nav-link text-dark hover:text-primary font-medium transition">Verify</a>
+                    <a href="report.html" class="nav-link text-dark hover:text-primary font-medium transition">Report</a>
+                    <a href="flagged.html" class="nav-link text-primary font-medium transition">Flagged</a>
+                    <a href="about.html" class="nav-link text-dark hover:text-primary font-medium transition">About</a>
+                </div>
+
+                <div class="hidden md:block">
+                    <a href="verify.html" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all shadow-lg hover:shadow-xl">Check a Drug</a>
+                </div>
+
+                <!-- Mobile Hamburger -->
+                <div class="md:hidden">
+                    <button id="hamburger" class="text-dark focus:outline-none">
+                        <div class="hamburger-line w-6 h-0.5 bg-dark mb-1.5"></div>
+                        <div class="hamburger-line w-6 h-0.5 bg-dark mb-1.5"></div>
+                        <div class="hamburger-line w-6 h-0.5 bg-dark"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white py-4 px-6 absolute w-full left-0 shadow-lg">
+            <div class="flex flex-col space-y-4">
+                <a href="index.html" class="text-dark hover:text-primary font-medium transition">Home</a>
+                <a href="verify.html" class="text-dark hover:text-primary font-medium transition">Verify</a>
+                <a href="report.html" class="text-dark hover:text-primary font-medium transition">Report</a>
+                <a href="flagged.html" class="text-primary font-medium transition">Flagged</a>
+                <a href="about.html" class="text-dark hover:text-primary font-medium transition">About</a>
+                <a href="verify.html" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all text-center">Check a Drug</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 md:pt-40 md:pb-28 hero-gradient text-white">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-12 md:mb-0 animate__animated animate__fadeInLeft">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold font-serif mb-6 leading-tight">
+                        Flagged Pharmacies <br>
+                        <span class="text-accent">& Nearby Drugs</span>
+                    </h1>
+                    <p class="text-lg md:text-xl mb-8 opacity-90">
+                        View pharmacies with reported issues and find safe alternatives nearby. Protect yourself from counterfeit medications.
+                    </p>
+                    <div class="flex items-center space-x-4">
+                        <a href="#search-section" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-semibold transition-all shadow-lg hover:shadow-xl flex items-center">
+                            Search Pharmacies <i class="fas fa-search-location ml-2"></i>
+                        </a>
+                        <a href="#predict-risk" class="text-white hover:text-gray-200 border border-white px-6 py-3 rounded-full font-medium transition-all flex items-center">
+                            <i class="fas fa-stethoscope mr-2"></i> Check Symptoms
+                        </a>
+                    </div>
+                </div>
+                <div class="md:w-1/2 animate__animated animate__fadeInRight">
+                    <div class="relative floating">
+                        <img src="https://images.unsplash.com/photo-1581093450021-4a7360e9a6a0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80"
+                             alt="Pharmacy inspection"
+                             class="rounded-xl shadow-2xl w-full h-auto max-w-md mx-auto">
+                        <div class="absolute -bottom-6 -right-6 bg-white p-4 rounded-xl shadow-lg hidden md:block animate__animated animate__pulse animate__infinite">
+                            <div class="text-center">
+                                <div class="text-3xl font-bold text-primary">50+</div>
+                                <div class="text-sm text-gray-600">Pharmacies Flagged</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Section -->
+    <section id="search-section" class="py-16 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="bg-gray-50 rounded-2xl shadow-xl p-8 mb-12">
+                    <h2 class="text-3xl font-bold font-serif mb-6 text-center">Search Flagged Pharmacies</h2>
+
+                    <form id="searchForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div>
+                            <label for="pharmacy-search" class="block text-sm font-medium text-gray-700 mb-1">Pharmacy Name</label>
+                            <div class="relative">
+                                <input type="text" id="pharmacy-search"
+                                       placeholder="Search pharmacies..."
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition pl-12">
+                                <div class="absolute left-3 top-3 text-gray-400">
+                                    <i class="fas fa-store"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="state-filter" class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                            <select id="state-filter"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition pl-12 appearance-none">
+                                <option value="">All States</option>
+                                <option value="Lagos">Lagos</option>
+                                <option value="Abuja">Abuja</option>
+                                <option value="Kano">Kano</option>
+                                <option value="Rivers">Rivers</option>
+                                <option value="Oyo">Oyo</option>
+                                <!-- More states would be added here -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="lga-filter" class="block text-sm font-medium text-gray-700 mb-1">LGA</label>
+                            <input type="text" id="lga-filter"
+                                   placeholder="Enter LGA"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition">
+                        </div>
+                        <div>
+                            <label for="drug-filter" class="block text-sm font-medium text-gray-700 mb-1">Drug Name</label>
+                            <div class="relative">
+                                <input type="text" id="drug-filter"
+                                       placeholder="Filter by drug..."
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition pl-12">
+                                <div class="absolute left-3 top-3 text-gray-400">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                        <div class="mb-4 sm:mb-0">
+                            <label for="sort-by" class="text-sm font-medium text-gray-700 mr-2">Sort by:</label>
+                            <select id="sort-by" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition">
+                                <option value="report_count">Report Count</option>
+                                <option value="pharmacy">Pharmacy Name</option>
+                            </select>
+                            <select id="sort-order" class="border border-gray-300 rounded-lg px-3 py-2 ml-2 focus:ring-2 focus:ring-primary focus:border-primary transition">
+                                <option value="desc">Descending</option>
+                                <option value="asc">Ascending</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="per-page" class="text-sm font-medium text-gray-700 mr-2">Items per page:</label>
+                            <select id="per-page" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary transition">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pharmacy</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reports</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Flagged Drugs</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pharmacy-results" class="bg-white divide-y divide-gray-200">
+                                    <!-- Loading skeleton -->
+                                    <tr class="animate-pulse">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-4 bg-gray-200 rounded w-full"></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-8 bg-gray-200 rounded w-20"></div>
+                                        </td>
+                                    </tr>
+                                    <!-- Repeat for 5 rows -->
+                                    <tr class="animate-pulse">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-4 bg-gray-200 rounded w-full"></div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="h-8 bg-gray-200 rounded w-20"></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="bg-white px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                            <div class="flex-1 flex justify-between sm:hidden">
+                                <button id="prev-page-mobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Previous
+                                </button>
+                                <button id="next-page-mobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Next
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p id="pagination-info" class="text-sm text-gray-700">
+                                        Showing <span class="font-medium">1</span> to <span class="font-medium">10</span> of <span class="font-medium">20</span> results
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                        <button id="prev-page" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                            <span class="sr-only">Previous</span>
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                        <div id="page-numbers" class="flex">
+                                            <!-- Page numbers will be inserted here -->
+                                        </div>
+                                        <button id="next-page" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                            <span class="sr-only">Next</span>
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                    <div class="bg-primary bg-opacity-10 p-6 rounded-2xl border border-primary border-opacity-20">
+                        <h3 class="text-xl font-bold font-serif mb-4 text-primary">Total Flagged Pharmacies</h3>
+                        <div class="text-4xl font-bold mb-2" id="total-pharmacies">50+</div>
+                        <p class="text-gray-600">Pharmacies with reported issues across Nigeria</p>
+                    </div>
+                    <div class="bg-yellow-500 bg-opacity-10 p-6 rounded-2xl border border-yellow-500 border-opacity-20">
+                        <h3 class="text-xl font-bold font-serif mb-4 text-yellow-600">Total Reports</h3>
+                        <div class="text-4xl font-bold mb-2" id="total-reports">200+</div>
+                        <p class="text-gray-600">Community reports of suspicious drugs</p>
+                    </div>
+                    <div class="bg-red-500 bg-opacity-10 p-6 rounded-2xl border border-red-500 border-opacity-20">
+                        <h3 class="text-xl font-bold font-serif mb-4 text-red-600">Most Reported Drug</h3>
+                        <div class="text-4xl font-bold mb-2" id="top-drug">Paracetamol</div>
+                        <p class="text-gray-600">Frequently reported in flagged pharmacies</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-12">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-xl font-bold font-serif">Flagged Pharmacies Map</h3>
+                    </div>
+                    <div class="map-container" id="pharmacy-map"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Nearby Pharmacies Section -->
+    <section id="nearby-pharmacies" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold font-serif mb-4">Find Safe Pharmacies Nearby</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Get a list of verified pharmacies and hospitals near your current location to ensure you're getting safe medications.
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+                        <h3 class="text-xl font-bold font-serif">Nearby Pharmacies & Hospitals</h3>
+                        <button id="get-location-btn" class="bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full font-medium transition-all shadow-lg hover:shadow-xl flex items-center mt-4 md:mt-0">
+                            <i class="fas fa-location-arrow mr-2"></i> Get Nearby Locations
+                        </button>
+                    </div>
+
+                    <div id="location-permission" class="hidden bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-lg mb-6">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-xl mr-3 mt-1"></i>
+                            <div>
+                                <p class="font-medium">Location Permission Required</p>
+                                <p class="text-sm">Please allow location access to find pharmacies near you. We only use your location for this search and don't store it.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="location-error" class="hidden bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg mb-6">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-circle text-xl mr-3 mt-1"></i>
+                            <div>
+                                <p class="font-medium" id="error-title">Location Error</p>
+                                <p class="text-sm" id="error-message">Unable to get your current location.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="loading-spinner" class="hidden flex justify-center items-center py-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                    </div>
+
+                    <div id="nearby-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Nearby places will be inserted here -->
+                        <div class="text-center py-12 text-gray-500">
+                            <i class="fas fa-map-marker-alt text-4xl mb-4"></i>
+                            <p>Click "Get Nearby Locations" to find pharmacies and hospitals near you.</p>
+                        </div>
+                    </div>
+
+                    <div id="map-container" class="mt-8 rounded-xl overflow-hidden hidden">
+                        <div id="nearby-map" class="h-96 w-full"></div>
+                    </div>
+
+                    <div class="mt-6 text-center">
+                        <button id="show-map-btn" class="text-primary hover:text-secondary font-medium hidden">
+                            <i class="fas fa-map mr-2"></i> Show on Map
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 hero-gradient text-white">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold font-serif mb-6">Stay Safe From Counterfeit Drugs</h2>
+            <p class="text-xl max-w-2xl mx-auto mb-8 opacity-90">
+                Verify medications before use and report suspicious drugs to protect others.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="verify.html" class="inline-block bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-semibold transition-all shadow-lg hover:shadow-xl">
+                    Verify a Drug <i class="fas fa-pills ml-2"></i>
+                </a>
+                <a href="report.html" class="inline-block border-2 border-white text-white hover:bg-white hover:text-primary px-8 py-3 rounded-full font-semibold transition-all">
+                    Report Suspicious <i class="fas fa-flag ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-2xl font-bold font-serif mb-4">Nexa<span class="text-primary">Health</span></h3>
+                    <p class="text-gray-400">Verify, report, and protect against fake medications in Nigeria.</p>
+                    <div class="flex space-x-4 mt-6">
+                        <a href="#" class="text-gray-400 hover:text-primary transition"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-primary transition"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-primary transition"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-primary transition"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-400 hover:text-primary transition">Home</a></li>
+                        <li><a href="verify.html" class="text-gray-400 hover:text-primary transition">Verify Drugs</a></li>
+                        <li><a href="report.html" class="text-gray-400 hover:text-primary transition">Report Drugs</a></li>
+                        <li><a href="flagged.html" class="text-gray-400 hover:text-primary transition">Flagged Pharmacies</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">NAFDAC Guidelines</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Drug Safety Tips</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">FAQ</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-primary transition">Blog</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Contact</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-start">
+                            <i class="fas fa-map-marker-alt mt-1 mr-3"></i>
+                            <span>123 Health Street, Lagos, Nigeria</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-phone-alt mt-1 mr-3"></i>
+                            <span>+234 812 345 6789</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-envelope mt-1 mr-3"></i>
+                            <span>info@nexahealth.org</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500">
+                <p>&copy; 2023 NexaHealth. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- JavaScript -->
+    <script src="flagged.js"></script>
+</body>
+</html>
