@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import re
 import json
 from difflib import get_close_matches
@@ -11,9 +12,9 @@ from nltk.stem import PorterStemmer
 stemmer = PorterStemmer()
 
 
-# === Paths ===
-RISK_DATA_PATH = "data/keyword_risk_map.csv"
-VERIFIED_DRUGS_PATH = "data/verified_drugs.json"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RISK_DATA_PATH = os.path.join(BASE_DIR, "data", "keyword_risk_map.csv")
+VERIFIED_DRUGS_PATH = os.path.join(BASE_DIR, "data", "verified_drugs.json")
 
 # === Load and Normalize Risk Data ===
 risk_df = pd.read_csv(RISK_DATA_PATH)
