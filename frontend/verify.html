@@ -140,7 +140,7 @@
                     <a href="verify.html" class="nav-link text-primary font-medium transition">Verify</a>
                     <a href="report.html" class="nav-link text-dark hover:text-primary font-medium transition">Report</a>
                     <a href="flagged.html" class="nav-link text-dark hover:text-primary font-medium transition">Flagged</a>
-                    <a href="about.html" class="nav-link text-dark hover:text-primary font-medium transition">About</a>
+                    <a href="symptoms.html" class="nav-link text-dark hover:text-primary font-medium transition">Symptoms Checker</a>
                 </div>
                 
                 <div class="hidden md:block">
@@ -165,7 +165,7 @@
                 <a href="verify.html" class="text-primary font-medium transition">Verify</a>
                 <a href="report.html" class="text-dark hover:text-primary font-medium transition">Report</a>
                 <a href="flagged.html" class="text-dark hover:text-primary font-medium transition">Flagged</a>
-                <a href="about.html" class="text-dark hover:text-primary font-medium transition">About</a>
+                <a href="symptoms.html" class="text-dark hover:text-primary font-medium transition">Symptoms Checker</a>
                 <a href="verify.html" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all text-center">Check a Drug</a>
             </div>
         </div>
@@ -545,61 +545,7 @@
     </footer>
 
     <!-- JavaScript -->
-    <script>
-        // Mobile Menu Toggle
-        const hamburger = document.getElementById('hamburger');
-        const mobileMenu = document.getElementById('mobile-menu');
-        
-        hamburger.addEventListener('click', () => {
-            hamburger.classList.toggle('hamburger-active');
-            mobileMenu.classList.toggle('hidden');
-        });
-        
-        // Close mobile menu when clicking a link
-        document.querySelectorAll('#mobile-menu a').forEach(link => {
-            link.addEventListener('click', () => {
-                hamburger.classList.remove('hamburger-active');
-                mobileMenu.classList.add('hidden');
-            });
-        });
-        
-        // Smooth scrolling for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                const targetId = this.getAttribute('href');
-                if (targetId === '#') return;
-                
-                const targetElement = document.querySelector(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-        
-        // FAQ Toggle
-        document.querySelectorAll('.faq-toggle').forEach(button => {
-            button.addEventListener('click', () => {
-                const content = button.nextElementSibling;
-                const icon = button.querySelector('i');
-                
-                content.classList.toggle('hidden');
-                icon.classList.toggle('rotate-180');
-            });
-        });
-        
-        // Drug Verification Form
-        const verificationForm = document.getElementById('verificationForm');
-        const resultsSection = document.getElementById('results-section');
-        const newSearchBtn = document.getElementById('new-search');
-        const verifyButton = document.getElementById('verify-button');
-        const buttonText = document.getElementById('button-text');
-        const buttonSpinner = document.getElementById('button-spinner');
-        
+    <script src="verify.js">
     </script>
 </body>
 </html>

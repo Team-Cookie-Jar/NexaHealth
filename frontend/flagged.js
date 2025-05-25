@@ -1,4 +1,4 @@
-// flagged.js - JavaScript for flagged.html with real API calls
+// flagged.js - Complete JavaScript for flagged.html with enhanced search functionality
 
 document.addEventListener('DOMContentLoaded', function() {
     // Mobile Menu Toggle
@@ -52,6 +52,10 @@ document.addEventListener('DOMContentLoaded', function() {
         popupAnchor: [0, -32]
     });
 
+    // Current page and search state
+    let currentPage = 1;
+    let currentSearchParams = {};
+
     // Fetch and display flagged pharmacies
     fetchFlaggedPharmacies();
 
@@ -77,9 +81,21 @@ document.addEventListener('DOMContentLoaded', function() {
         showMapBtn.addEventListener('click', toggleMap);
     }
 
-    function fetchFlaggedPharmacies() {
+    function fetchFlaggedPharmacies(page = 1) {
+        currentPage = page;
         const pharmacyResults = document.getElementById('pharmacy-results');
         if (!pharmacyResults) return;
+
+        // Get search parameters from form
+        currentSearchParams = {
+            pharmacy: document.getElementById('pharmacy-search').value,
+            state: document.getElementById('state-filter').value,
+            lga: document.getElementById('lga-filter').value,
+            drug: document.getElementById('drug-filter').value,
+            sort_by: document.getElementById('sort-by').value,
+            sort_order: document.getElementById('sort-order').value,
+            limit: document.getElementById('per-page').value
+        };
 
         // Show loading state
         pharmacyResults.innerHTML = `
@@ -119,8 +135,26 @@ document.addEventListener('DOMContentLoaded', function() {
             </tr>
         `;
 
-        // Fetch flagged pharmacies from API
-        fetch('https://localhost:8000/get-flagged')
+        // Clear existing markers from map
+        mainMap.eachLayer(layer => {
+            if (layer instanceof L.Marker) {
+                mainMap.removeLayer(layer);
+            }
+        });
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (currentSearchParams.pharmacy) params.append('pharmacy', currentSearchParams.pharmacy);
+        if (currentSearchParams.state) params.append('state', currentSearchParams.state);
+        if (currentSearchParams.lga) params.append('lga', currentSearchParams.lga);
+        if (currentSearchParams.drug) params.append('drug', currentSearchParams.drug);
+        params.append('sort_by', currentSearchParams.sort_by);
+        params.append('sort_order', currentSearchParams.sort_order);
+        params.append('page', currentPage);
+        params.append('limit', currentSearchParams.limit);
+
+        // Fetch flagged pharmacies from API with search parameters
+        fetch(`http://localhost:8000/get-flagged?${params.toString()}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -204,13 +238,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     pharmacyResults.innerHTML = `
                         <tr>
                             <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                                No flagged pharmacies found
+                                No flagged pharmacies found matching your search criteria
                             </td>
                         </tr>
                     `;
                 }
 
-                // Update summary stats
+                // Update summary stats and show count of results
                 if (data.summary) {
                     document.getElementById('total-pharmacies').textContent = data.summary.total_flagged_pharmacies || '0';
                     document.getElementById('total-reports').textContent = data.summary.total_reports || '0';
@@ -218,6 +252,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.summary.top_drugs && data.summary.top_drugs.length > 0) {
                         document.getElementById('top-drug').textContent = data.summary.top_drugs[0].drug_name || 'None';
                     }
+
+                    // Update pagination info
+                    const totalFiltered = data.total_filtered || 0;
+                    const limit = data.limit || 10;
+                    const start = (currentPage - 1) * limit + 1;
+                    const end = Math.min(start + limit - 1, totalFiltered);
+
+                    document.getElementById('pagination-info').innerHTML = `
+                        Showing <span class="font-medium">${start}</span> to <span class="font-medium">${end}</span> of <span class="font-medium">${totalFiltered}</span> results
+                    `;
+
+                    // Update pagination buttons
+                    updatePaginationButtons(totalFiltered, currentPage, limit);
                 }
             })
             .catch(error => {
@@ -232,9 +279,68 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function updatePaginationButtons(totalItems, currentPage, itemsPerPage) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        const pageNumbers = document.getElementById('page-numbers');
+        const prevPage = document.getElementById('prev-page');
+        const nextPage = document.getElementById('prev-page-mobile');
+        const nextPageMobile = document.getElementById('next-page-mobile');
+        const prevPageMobile = document.getElementById('prev-page');
+
+        // Clear existing page numbers
+        pageNumbers.innerHTML = '';
+
+        // Disable/enable previous buttons
+        if (currentPage <= 1) {
+            prevPage.classList.add('opacity-50', 'cursor-not-allowed');
+            prevPageMobile.classList.add('opacity-50', 'cursor-not-allowed');
+            prevPage.disabled = true;
+            prevPageMobile.disabled = true;
+        } else {
+            prevPage.classList.remove('opacity-50', 'cursor-not-allowed');
+            prevPageMobile.classList.remove('opacity-50', 'cursor-not-allowed');
+            prevPage.disabled = false;
+            prevPageMobile.disabled = false;
+        }
+
+        // Disable/enable next buttons
+        if (currentPage >= totalPages) {
+            nextPage.classList.add('opacity-50', 'cursor-not-allowed');
+            nextPageMobile.classList.add('opacity-50', 'cursor-not-allowed');
+            nextPage.disabled = true;
+            nextPageMobile.disabled = true;
+        } else {
+            nextPage.classList.remove('opacity-50', 'cursor-not-allowed');
+            nextPageMobile.classList.remove('opacity-50', 'cursor-not-allowed');
+            nextPage.disabled = false;
+            nextPageMobile.disabled = false;
+        }
+
+        // Show page numbers (up to 5 pages around current page)
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageButton = document.createElement('button');
+            pageButton.className = `relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                i === currentPage 
+                    ? 'bg-primary border-primary text-white' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`;
+            pageButton.textContent = i;
+            pageButton.addEventListener('click', () => fetchFlaggedPharmacies(i));
+            pageNumbers.appendChild(pageButton);
+        }
+    }
+
     function fetchPharmacyDetails(pharmacyName) {
         // Fetch detailed reports for a specific pharmacy
-        fetch(`https://localhost:8000/get-flagged/${encodeURIComponent(pharmacyName)}/reports`)
+        fetch(`http://localhost:8000/get-flagged/${encodeURIComponent(pharmacyName)}/reports`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -297,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchNearbyPlaces(lat, lng) {
-        fetch(`https://localhost:8000/get-nearby?lat=${lat}&lng=${lng}`)
+        fetch(`http://localhost:8000/get-nearby?lat=${lat}&lng=${lng}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -488,4 +594,32 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('error-message').textContent = message;
         locationError.classList.remove('hidden');
     }
+
+    // Add search button event listener
+    const searchButton = document.getElementById('search-button');
+    if (searchButton) {
+        searchButton.addEventListener('click', () => fetchFlaggedPharmacies(1));
+    }
+
+    // Add event listeners for pagination buttons
+    document.getElementById('prev-page')?.addEventListener('click', () => {
+        if (currentPage > 1) fetchFlaggedPharmacies(currentPage - 1);
+    });
+    document.getElementById('next-page')?.addEventListener('click', () => {
+        fetchFlaggedPharmacies(currentPage + 1);
+    });
+    document.getElementById('prev-page-mobile')?.addEventListener('click', () => {
+        if (currentPage > 1) fetchFlaggedPharmacies(currentPage - 1);
+    });
+    document.getElementById('next-page-mobile')?.addEventListener('click', () => {
+        fetchFlaggedPharmacies(currentPage + 1);
+    });
+
+    // Also add event listeners for form inputs to trigger search on change
+    document.getElementById('sort-by')?.addEventListener('change', () => fetchFlaggedPharmacies(1));
+    document.getElementById('sort-order')?.addEventListener('change', () => fetchFlaggedPharmacies(1));
+    document.getElementById('per-page')?.addEventListener('change', () => fetchFlaggedPharmacies(1));
+
+    // Initial load
+    fetchFlaggedPharmacies(1);
 });
