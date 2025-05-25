@@ -12,8 +12,8 @@ stemmer = PorterStemmer()
 
 
 # === Paths ===
-RISK_DATA_PATH = "backend/app/data/keyword_risk_map.csv"
-VERIFIED_DRUGS_PATH = "backend/app/data/verified_drugs.json"
+RISK_DATA_PATH = "data/keyword_risk_map.csv"
+VERIFIED_DRUGS_PATH = "data/verified_drugs.json"
 
 # === Load and Normalize Risk Data ===
 risk_df = pd.read_csv(RISK_DATA_PATH)
