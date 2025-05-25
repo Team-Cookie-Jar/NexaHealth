@@ -2,6 +2,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import verify, report, map, risk, nearby
+from dotenv import load_dotenv
+
 
 app = FastAPI(title="NexaHealth API")
 
