@@ -71,7 +71,7 @@ def fetch_flagged_data():
         sorted_drugs = sorted(drug_counts.items(), key=lambda x: x[1], reverse=True)
         summary["top_drugs"] = [{"drug_name": d[0], "count": d[1]} for d in sorted_drugs[:5]]
 
-        return flagged, summary
+        return flagged, summary, reports  # return raw reports
 
     except Exception as e:
         cache["flagged_data"] = None
@@ -92,18 +92,17 @@ async def get_flagged_pharmacies(
 ):
     now = datetime.utcnow()
     if cache["flagged_data"] and cache["timestamp"] and (now - cache["timestamp"]).total_seconds() < cache["ttl_seconds"]:
-        flagged, summary = cache["flagged_data"]
+        flagged, summary, all_reports = cache["flagged_data"]
     else:
-        flagged, summary = fetch_flagged_data()
-        cache["flagged_data"] = (flagged, summary)
+        flagged, summary, all_reports = fetch_flagged_data()
+        cache["flagged_data"] = (flagged, summary, all_reports)
         cache["timestamp"] = now
 
     # Fuzzy matching helper
     def fuzzy_match(query: str, target: str, threshold=70):
-        """Return True if fuzzy ratio >= threshold (case-insensitive)."""
         return fuzz.partial_ratio(query.lower(), target.lower()) >= threshold
 
-    # Apply filters with fuzzy matching and case insensitivity
+    # Filter flagged pharmacies
     def matches_filter(item):
         if pharmacy and not fuzzy_match(pharmacy, item["pharmacy"]):
             return False
@@ -111,10 +110,8 @@ async def get_flagged_pharmacies(
             return False
         if lga and not fuzzy_match(lga, item.get("lga") or ""):
             return False
-        if drug:
-            # Check fuzzy match against any drug in list
-            if not any(fuzzy_match(drug, d) for d in item.get("drugs", [])):
-                return False
+        if drug and not any(fuzzy_match(drug, d) for d in item.get("drugs", [])):
+            return False
         return True
 
     filtered = list(filter(matches_filter, flagged))
@@ -130,32 +127,9 @@ async def get_flagged_pharmacies(
 
     return {
         "flagged_pharmacies": paginated,
+        "all_reports": all_reports,  # 🔥 included here
         "summary": summary,
         "page": page,
         "limit": limit,
         "total_filtered": len(filtered)
     }
-
-
-@router.get("/get-flagged/{pharmacy_name}/reports")
-async def get_reports_for_pharmacy(pharmacy_name: str):
-    try:
-        # Fetch all documents and filter manually (case-insensitive and fuzzy)
-        docs = reports_collection.stream()
-        reports = []
-        for doc in docs:
-            data = doc.to_dict()
-            if data and fuzz.partial_ratio(pharmacy_name.lower(), data.get("pharmacy_name", "").lower()) >= 70:
-                reports.append(data)
-
-        if not reports:
-            raise HTTPException(status_code=404, detail="No reports found for this pharmacy")
-
-        return {
-            "pharmacy": pharmacy_name,
-            "report_count": len(reports),
-            "reports": reports
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
