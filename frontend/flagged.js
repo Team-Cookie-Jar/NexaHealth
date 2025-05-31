@@ -55,9 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Current page and search state
     let currentPage = 1;
     let currentSearchParams = {};
-
-    // Fetch and display flagged pharmacies
-    fetchFlaggedPharmacies();
+    let currentView = 'flagged'; // 'flagged' or 'all'
 
     // Nearby Pharmacies Functionality
     const getLocationBtn = document.getElementById('get-location-btn');
@@ -81,6 +79,43 @@ document.addEventListener('DOMContentLoaded', function() {
         showMapBtn.addEventListener('click', toggleMap);
     }
 
+    // Tab switching functionality
+    document.getElementById('flagged-tab')?.addEventListener('click', () => {
+        currentView = 'flagged';
+        document.getElementById('flagged-tab').classList.add('text-primary', 'border-primary');
+        document.getElementById('flagged-tab').classList.remove('text-gray-500');
+        document.getElementById('all-reports-tab').classList.add('text-gray-500');
+        document.getElementById('all-reports-tab').classList.remove('text-primary', 'border-primary');
+        fetchFlaggedPharmacies(1);
+    });
+
+    document.getElementById('all-reports-tab')?.addEventListener('click', () => {
+        currentView = 'all';
+        document.getElementById('all-reports-tab').classList.add('text-primary', 'border-primary');
+        document.getElementById('all-reports-tab').classList.remove('text-gray-500');
+        document.getElementById('flagged-tab').classList.add('text-gray-500');
+        document.getElementById('flagged-tab').classList.remove('text-primary', 'border-primary');
+        fetchFlaggedPharmacies(1);
+    });
+
+    // Image viewer modal
+    function showImageModal(imageUrl) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
+        modal.innerHTML = `
+            <div class="relative max-w-4xl w-full">
+                <button class="absolute -top-12 right-0 text-white text-3xl hover:text-gray-300">&times;</button>
+                <img src="${imageUrl}" alt="Report evidence" class="max-h-screen w-full object-contain">
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.querySelector('button').addEventListener('click', () => {
+            modal.remove();
+        });
+    }
+
+    // Main function to fetch and display data
     function fetchFlaggedPharmacies(page = 1) {
         currentPage = page;
         const pharmacyResults = document.getElementById('pharmacy-results');
@@ -98,39 +133,16 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         // Show loading state
+        const cols = currentView === 'flagged' ? 5 : 6;
         pharmacyResults.innerHTML = `
             <tr class="animate-pulse">
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td colspan="${cols}" class="px-6 py-4 whitespace-nowrap">
                     <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-4 bg-gray-200 rounded w-1/2"></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-4 bg-gray-200 rounded w-1/4"></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-4 bg-gray-200 rounded w-full"></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-8 bg-gray-200 rounded w-20"></div>
                 </td>
             </tr>
             <tr class="animate-pulse">
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td colspan="${cols}" class="px-6 py-4 whitespace-nowrap">
                     <div class="h-4 bg-gray-200 rounded w-1/2"></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-4 bg-gray-200 rounded w-1/4"></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-4 bg-gray-200 rounded w-full"></div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-8 bg-gray-200 rounded w-20"></div>
                 </td>
             </tr>
         `;
@@ -153,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
         params.append('page', currentPage);
         params.append('limit', currentSearchParams.limit);
 
-        // Fetch flagged pharmacies from API with search parameters
+        // Fetch data from API with search parameters
         fetch(`https://lyre-4m8l.onrender.com/get-flagged?${params.toString()}`)
             .then(response => {
                 if (!response.ok) {
@@ -165,83 +177,124 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update the table with real data
                 pharmacyResults.innerHTML = '';
 
-                if (data.flagged_pharmacies && data.flagged_pharmacies.length > 0) {
-                    data.flagged_pharmacies.forEach(pharmacy => {
-                        let drugsList = '';
-                        if (pharmacy.drugs && pharmacy.drugs.length > 0) {
-                            pharmacy.drugs.forEach(drug => {
-                                drugsList += `<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${drug}</span>`;
-                            });
-                        }
-
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-gray-50';
-                        row.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="font-medium">${pharmacy.pharmacy}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div>${pharmacy.street_address || 'Address not available'}, ${pharmacy.lga || 'N/A'}</div>
-                                <div class="text-sm text-gray-500">${pharmacy.state || 'N/A'}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">${pharmacy.report_count} reports</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex flex-wrap">${drugsList || 'No drugs listed'}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <button class="text-primary hover:text-secondary font-medium view-pharmacy-details" data-pharmacy="${encodeURIComponent(pharmacy.pharmacy)}">Details</button>
-                            </td>
-                        `;
-
-                        pharmacyResults.appendChild(row);
-                    });
-
-                    // Add markers to the map
-                    data.flagged_pharmacies.forEach(pharmacy => {
-                        if (pharmacy.lat && pharmacy.lng) {
-                            const marker = L.marker([pharmacy.lat, pharmacy.lng], {icon: pharmacyIcon}).addTo(mainMap);
-
+                if (currentView === 'flagged') {
+                    // Flagged pharmacies view
+                    if (data.flagged_pharmacies && data.flagged_pharmacies.length > 0) {
+                        data.flagged_pharmacies.forEach(pharmacy => {
                             let drugsList = '';
                             if (pharmacy.drugs && pharmacy.drugs.length > 0) {
                                 pharmacy.drugs.forEach(drug => {
-                                    drugsList += `<span class="badge bg-red-100 text-red-800">${drug}</span>`;
+                                    drugsList += `<span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${drug}</span>`;
                                 });
                             }
 
-                            marker.bindPopup(`
-                                <h3>${pharmacy.pharmacy}</h3>
-                                <p><strong>Location:</strong> ${pharmacy.street_address || 'N/A'}, ${pharmacy.lga || 'N/A'}, ${pharmacy.state || 'N/A'}</p>
-                                <p><strong>Reports:</strong> ${pharmacy.report_count}</p>
-                                <div class="mt-2">
-                                    <p class="font-medium">Flagged Drugs:</p>
-                                    <div class="mt-1">${drugsList || 'None'}</div>
-                                </div>
-                                <div class="mt-3 text-center">
-                                    <button class="text-sm bg-primary text-white px-3 py-1 rounded hover:bg-secondary transition view-pharmacy-details" data-pharmacy="${encodeURIComponent(pharmacy.pharmacy)}">
-                                        View Details
-                                    </button>
-                                </div>
-                            `);
-                        }
-                    });
-
-                    // Add event listeners for details buttons
-                    document.querySelectorAll('.view-pharmacy-details').forEach(button => {
-                        button.addEventListener('click', function() {
-                            const pharmacyName = decodeURIComponent(this.getAttribute('data-pharmacy'));
-                            fetchPharmacyDetails(pharmacyName);
+                            const row = document.createElement('tr');
+                            row.className = 'hover:bg-gray-50';
+                            row.innerHTML = `
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="font-medium">${pharmacy.pharmacy}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div>${pharmacy.street_address || 'Address not available'}, ${pharmacy.lga || 'N/A'}</div>
+                                    <div class="text-sm text-gray-500">${pharmacy.state || 'N/A'}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">${pharmacy.report_count} reports</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-wrap">${drugsList || 'No drugs listed'}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <button class="text-primary hover:text-secondary font-medium view-pharmacy-details" data-pharmacy="${encodeURIComponent(pharmacy.pharmacy)}">Details</button>
+                                </td>
+                            `;
+                            pharmacyResults.appendChild(row);
                         });
-                    });
+
+                        // Add markers to the map
+                        data.flagged_pharmacies.forEach(pharmacy => {
+                            if (pharmacy.lat && pharmacy.lng) {
+                                const marker = L.marker([pharmacy.lat, pharmacy.lng], {icon: pharmacyIcon}).addTo(mainMap);
+
+                                let drugsList = '';
+                                if (pharmacy.drugs && pharmacy.drugs.length > 0) {
+                                    pharmacy.drugs.forEach(drug => {
+                                        drugsList += `<span class="badge bg-red-100 text-red-800">${drug}</span>`;
+                                    });
+                                }
+
+                                marker.bindPopup(`
+                                    <h3>${pharmacy.pharmacy}</h3>
+                                    <p><strong>Location:</strong> ${pharmacy.street_address || 'N/A'}, ${pharmacy.lga || 'N/A'}, ${pharmacy.state || 'N/A'}</p>
+                                    <p><strong>Reports:</strong> ${pharmacy.report_count}</p>
+                                    <div class="mt-2">
+                                        <p class="font-medium">Flagged Drugs:</p>
+                                        <div class="mt-1">${drugsList || 'None'}</div>
+                                    </div>
+                                    <div class="mt-3 text-center">
+                                        <button class="text-sm bg-primary text-white px-3 py-1 rounded hover:bg-secondary transition view-pharmacy-details" data-pharmacy="${encodeURIComponent(pharmacy.pharmacy)}">
+                                            View Details
+                                        </button>
+                                    </div>
+                                `);
+                            }
+                        });
+                    } else {
+                        pharmacyResults.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                    No flagged pharmacies found matching your search criteria
+                                </td>
+                            </tr>
+                        `;
+                    }
                 } else {
-                    pharmacyResults.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                                No flagged pharmacies found matching your search criteria
-                            </td>
-                        </tr>
-                    `;
+                    // All reports view
+                    if (data.all_reports && data.all_reports.length > 0) {
+                        data.all_reports.forEach(report => {
+                            const row = document.createElement('tr');
+                            row.className = 'hover:bg-gray-50';
+                            row.innerHTML = `
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="font-medium">${report.pharmacy_name || 'N/A'}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="font-medium">${report.drug_name || 'N/A'}</div>
+                                    ${report.nafdac_reg_no ? `<div class="text-sm text-gray-500">NAFDAC: ${report.nafdac_reg_no}</div>` : ''}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div>${report.street_address || 'Address not available'}, ${report.lga || 'N/A'}</div>
+                                    <div class="text-sm text-gray-500">${report.state || 'N/A'}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="max-w-xs truncate">${report.description || 'No description'}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">${new Date(report.timestamp).toLocaleString()}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    ${report.image_url ? `<button class="text-primary hover:text-secondary font-medium view-report-image" data-url="${report.image_url}">View Image</button>` : 'No image'}
+                                </td>
+                            `;
+                            pharmacyResults.appendChild(row);
+                        });
+
+                        // Add event listeners for image viewing
+                        document.querySelectorAll('.view-report-image').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const imageUrl = this.getAttribute('data-url');
+                                showImageModal(imageUrl);
+                            });
+                        });
+                    } else {
+                        pharmacyResults.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                    No reports found matching your search criteria
+                                </td>
+                            </tr>
+                        `;
+                    }
                 }
 
                 // Update summary stats and show count of results
@@ -254,8 +307,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
 
                     // Update pagination info
-                    const totalFiltered = data.total_filtered || 0;
-                    const limit = data.limit || 10;
+                    const totalFiltered = currentView === 'flagged' ? (data.total_filtered || 0) : (data.all_reports?.length || 0);
+                    const limit = parseInt(currentSearchParams.limit) || 10;
                     const start = (currentPage - 1) * limit + 1;
                     const end = Math.min(start + limit - 1, totalFiltered);
 
@@ -268,11 +321,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Error fetching flagged pharmacies:', error);
+                console.error('Error fetching data:', error);
                 pharmacyResults.innerHTML = `
                     <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-red-500">
-                            Error loading flagged pharmacies. Please try again later.
+                        <td colspan="${currentView === 'flagged' ? 5 : 6}" class="px-6 py-4 text-center text-red-500">
+                            Error loading data. Please try again later.
                         </td>
                     </tr>
                 `;
@@ -292,28 +345,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Disable/enable previous buttons
         if (currentPage <= 1) {
-            prevPage.classList.add('opacity-50', 'cursor-not-allowed');
-            prevPageMobile.classList.add('opacity-50', 'cursor-not-allowed');
-            prevPage.disabled = true;
-            prevPageMobile.disabled = true;
+            prevPage?.classList.add('opacity-50', 'cursor-not-allowed');
+            prevPageMobile?.classList.add('opacity-50', 'cursor-not-allowed');
+            if (prevPage) prevPage.disabled = true;
+            if (prevPageMobile) prevPageMobile.disabled = true;
         } else {
-            prevPage.classList.remove('opacity-50', 'cursor-not-allowed');
-            prevPageMobile.classList.remove('opacity-50', 'cursor-not-allowed');
-            prevPage.disabled = false;
-            prevPageMobile.disabled = false;
+            prevPage?.classList.remove('opacity-50', 'cursor-not-allowed');
+            prevPageMobile?.classList.remove('opacity-50', 'cursor-not-allowed');
+            if (prevPage) prevPage.disabled = false;
+            if (prevPageMobile) prevPageMobile.disabled = false;
         }
 
         // Disable/enable next buttons
         if (currentPage >= totalPages) {
-            nextPage.classList.add('opacity-50', 'cursor-not-allowed');
-            nextPageMobile.classList.add('opacity-50', 'cursor-not-allowed');
-            nextPage.disabled = true;
-            nextPageMobile.disabled = true;
+            nextPage?.classList.add('opacity-50', 'cursor-not-allowed');
+            nextPageMobile?.classList.add('opacity-50', 'cursor-not-allowed');
+            if (nextPage) nextPage.disabled = true;
+            if (nextPageMobile) nextPageMobile.disabled = true;
         } else {
-            nextPage.classList.remove('opacity-50', 'cursor-not-allowed');
-            nextPageMobile.classList.remove('opacity-50', 'cursor-not-allowed');
-            nextPage.disabled = false;
-            nextPageMobile.disabled = false;
+            nextPage?.classList.remove('opacity-50', 'cursor-not-allowed');
+            nextPageMobile?.classList.remove('opacity-50', 'cursor-not-allowed');
+            if (nextPage) nextPage.disabled = false;
+            if (nextPageMobile) nextPageMobile.disabled = false;
         }
 
         // Show page numbers (up to 5 pages around current page)
@@ -619,6 +672,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('sort-by')?.addEventListener('change', () => fetchFlaggedPharmacies(1));
     document.getElementById('sort-order')?.addEventListener('change', () => fetchFlaggedPharmacies(1));
     document.getElementById('per-page')?.addEventListener('change', () => fetchFlaggedPharmacies(1));
+
+    // Add event listener for pharmacy details buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('view-pharmacy-details')) {
+            const pharmacyName = decodeURIComponent(e.target.getAttribute('data-pharmacy'));
+            fetchPharmacyDetails(pharmacyName);
+        }
+    });
 
     // Initial load
     fetchFlaggedPharmacies(1);
