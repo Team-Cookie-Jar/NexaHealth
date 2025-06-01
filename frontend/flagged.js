@@ -1,4 +1,4 @@
-// flagged.js - Complete JavaScript for flagged.html with enhanced search functionality
+// flagged.js - Complete JavaScript for flagged.html with enhanced map loading performance
 
 document.addEventListener('DOMContentLoaded', function() {
     // Mobile Menu Toggle
@@ -38,19 +38,41 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Initialize Main Map (Flagged Pharmacies)
-    const mainMap = L.map('pharmacy-map').setView([9.0820, 8.6753], 6); // Center on Nigeria
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(mainMap);
+    // Initialize Main Map (Flagged Pharmacies) - Now lazy loaded
+    let mainMap = null;
+    let pharmacyIcon = null;
 
-    // Icon for flagged pharmacies
-    const pharmacyIcon = L.icon({
-        iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32]
-    });
+    function initializeMainMap() {
+        if (!mainMap) {
+            mainMap = L.map('pharmacy-map', {
+                preferCanvas: true, // Better performance for many markers
+                fadeAnimation: false, // Disable fade animation for faster rendering
+                zoomControl: false // We'll add our own later
+            }).setView([9.0820, 8.6753], 6); // Center on Nigeria
+
+            // Add zoom control with better position
+            L.control.zoom({
+                position: 'topright'
+            }).addTo(mainMap);
+
+            // Cache tiles for better performance
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+                reuseTiles: true,
+                updateWhenIdle: true
+            }).addTo(mainMap);
+
+            // Icon for flagged pharmacies - only create once
+            pharmacyIcon = L.icon({
+                iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            });
+        }
+        return mainMap;
+    }
 
     // Current page and search state
     let currentPage = 1;
@@ -147,13 +169,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </tr>
         `;
 
-        // Clear existing markers from map
-        mainMap.eachLayer(layer => {
-            if (layer instanceof L.Marker) {
-                mainMap.removeLayer(layer);
-            }
-        });
-
         // Build query parameters
         const params = new URLSearchParams();
         if (currentSearchParams.pharmacy) params.append('pharmacy', currentSearchParams.pharmacy);
@@ -178,8 +193,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 pharmacyResults.innerHTML = '';
 
                 if (currentView === 'flagged') {
+                    // Initialize map only when needed and only once
+                    if (!mainMap) {
+                        initializeMainMap();
+                    }
+
+                    // Clear existing markers from map more efficiently
+                    if (mainMap && mainMap.eachLayer) {
+                        mainMap.eachLayer(layer => {
+                            if (layer instanceof L.Marker) {
+                                mainMap.removeLayer(layer);
+                            }
+                        });
+                    }
+
                     // Flagged pharmacies view
                     if (data.flagged_pharmacies && data.flagged_pharmacies.length > 0) {
+                        // Create a marker cluster group for better performance
+                        const markerClusterGroup = L.markerClusterGroup({
+                            spiderfyOnMaxZoom: true,
+                            showCoverageOnHover: false,
+                            zoomToBoundsOnClick: true,
+                            chunkedLoading: true,
+                            chunkInterval: 100
+                        });
+
                         data.flagged_pharmacies.forEach(pharmacy => {
                             let drugsList = '';
                             if (pharmacy.drugs && pharmacy.drugs.length > 0) {
@@ -209,12 +247,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </td>
                             `;
                             pharmacyResults.appendChild(row);
-                        });
 
-                        // Add markers to the map
-                        data.flagged_pharmacies.forEach(pharmacy => {
+                            // Add markers to the cluster group if coordinates exist
                             if (pharmacy.lat && pharmacy.lng) {
-                                const marker = L.marker([pharmacy.lat, pharmacy.lng], {icon: pharmacyIcon}).addTo(mainMap);
+                                const marker = L.marker([pharmacy.lat, pharmacy.lng], {icon: pharmacyIcon});
 
                                 let drugsList = '';
                                 if (pharmacy.drugs && pharmacy.drugs.length > 0) {
@@ -237,8 +273,23 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </button>
                                     </div>
                                 `);
+
+                                markerClusterGroup.addLayer(marker);
                             }
                         });
+
+                        // Add the cluster group to the map
+                        if (mainMap) {
+                            mainMap.addLayer(markerClusterGroup);
+
+                            // Fit bounds to show all markers if we have any
+                            if (data.flagged_pharmacies.some(p => p.lat && p.lng)) {
+                                const markerBounds = markerClusterGroup.getBounds();
+                                if (markerBounds.isValid()) {
+                                    mainMap.fitBounds(markerBounds, {padding: [50, 50]});
+                                }
+                            }
+                        }
                     } else {
                         pharmacyResults.innerHTML = `
                             <tr>
@@ -572,11 +623,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const lng = parseFloat(this.getAttribute('data-lng'));
 
                 if (!mapContainer.classList.contains('hidden')) {
-                    nearbyMap.setView([lat, lng], 16);
+                    if (nearbyMap) {
+                        nearbyMap.setView([lat, lng], 16);
+                    }
                 } else {
                     toggleMap();
                     setTimeout(() => {
-                        nearbyMap.setView([lat, lng], 16);
+                        if (nearbyMap) {
+                            nearbyMap.setView([lat, lng], 16);
+                        }
                     }, 300);
                 }
             });
@@ -600,9 +655,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializeNearbyMap() {
         if (!userLocation || !nearbyPlaces || nearbyPlaces.length === 0) return;
 
-        nearbyMap = L.map('nearby-map').setView([userLocation.lat, userLocation.lng], 14);
+        nearbyMap = L.map('nearby-map', {
+            preferCanvas: true,
+            fadeAnimation: false,
+            zoomControl: false
+        }).setView([userLocation.lat, userLocation.lng], 14);
+
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(nearbyMap);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            reuseTiles: true,
+            updateWhenIdle: true
         }).addTo(nearbyMap);
 
         // Add user location marker
@@ -620,7 +687,16 @@ document.addEventListener('DOMContentLoaded', function() {
           .bindPopup('Your Location')
           .openPopup();
 
-        // Add nearby places markers
+        // Create a marker cluster group for better performance
+        const nearbyMarkerCluster = L.markerClusterGroup({
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            chunkedLoading: true,
+            chunkInterval: 100
+        });
+
+        // Add nearby places markers to the cluster group
         nearbyPlaces.forEach(place => {
             const placeIcon = L.icon({
                 iconUrl: place.type === 'Pharmacy' ?
@@ -631,15 +707,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 popupAnchor: [0, -32]
             });
 
-            L.marker([place.location.lat, place.location.lng], {
+            const marker = L.marker([place.location.lat, place.location.lng], {
                 icon: placeIcon
-            }).addTo(nearbyMap)
-              .bindPopup(`
+            }).bindPopup(`
                 <h3 class="font-bold">${place.name}</h3>
                 <p class="text-sm">${place.address || 'Address not available'}</p>
                 ${place.phone ? `<p class="text-sm mt-1"><i class="fas fa-phone-alt mr-1"></i> ${place.phone}</p>` : ''}
-              `);
+            `);
+
+            nearbyMarkerCluster.addLayer(marker);
         });
+
+        nearbyMap.addLayer(nearbyMarkerCluster);
     }
 
     function showError(title, message) {
