@@ -133,3 +133,26 @@ async def get_flagged_pharmacies(
         "limit": limit,
         "total_filtered": len(filtered)
     }
+
+
+@router.get("/get-flagged/{pharmacy}/reports")
+async def get_pharmacy_reports(pharmacy: str):
+    try:
+        # Get all reports from cache or database
+        _, _, all_reports = cache["flagged_data"] or fetch_flagged_data()
+
+        # Filter reports for this specific pharmacy (case-insensitive)
+        pharmacy_lower = pharmacy.lower()
+        pharmacy_reports = [
+            r for r in all_reports
+            if r.get("pharmacy_name", "").lower() == pharmacy_lower
+        ]
+
+        return {
+            "pharmacy": pharmacy,
+            "reports": pharmacy_reports,
+            "count": len(pharmacy_reports)
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
