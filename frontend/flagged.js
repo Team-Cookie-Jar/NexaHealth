@@ -1,4 +1,4 @@
-// flagged.js - Complete JavaScript for flagged.html with enhanced map loading performance
+// flagged.js - Complete optimized JavaScript for flagged.html
 
 document.addEventListener('DOMContentLoaded', function() {
     // Mobile Menu Toggle
@@ -38,24 +38,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Initialize Main Map (Flagged Pharmacies) - Now lazy loaded
+    // Initialize Main Map (Flagged Pharmacies) - Lazy loaded
     let mainMap = null;
     let pharmacyIcon = null;
 
     function initializeMainMap() {
         if (!mainMap) {
             mainMap = L.map('pharmacy-map', {
-                preferCanvas: true, // Better performance for many markers
-                fadeAnimation: false, // Disable fade animation for faster rendering
-                zoomControl: false // We'll add our own later
-            }).setView([9.0820, 8.6753], 6); // Center on Nigeria
+                preferCanvas: true,
+                fadeAnimation: false,
+                zoomControl: false
+            }).setView([9.0820, 8.6753], 6);
 
-            // Add zoom control with better position
             L.control.zoom({
                 position: 'topright'
             }).addTo(mainMap);
 
-            // Cache tiles for better performance
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                 maxZoom: 19,
@@ -63,7 +61,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateWhenIdle: true
             }).addTo(mainMap);
 
-            // Icon for flagged pharmacies - only create once
             pharmacyIcon = L.icon({
                 iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
                 iconSize: [32, 32],
@@ -77,9 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Current page and search state
     let currentPage = 1;
     let currentSearchParams = {};
-    let currentView = 'flagged'; // 'flagged' or 'all'
+    let currentView = 'flagged';
 
-    // Nearby Pharmacies Functionality
+    // Nearby Pharmacies Functionality - Optimized
     const getLocationBtn = document.getElementById('get-location-btn');
     const locationPermission = document.getElementById('location-permission');
     const locationError = document.getElementById('location-error');
@@ -92,6 +89,31 @@ document.addEventListener('DOMContentLoaded', function() {
     let nearbyMap = null;
     let userLocation = null;
     let nearbyPlaces = [];
+    let isNearbyMapInitialized = false;
+
+    // Pre-load map tiles in the background
+    function preloadMapTiles() {
+        if (!isNearbyMapInitialized) {
+            nearbyMap = L.map('nearby-map', {
+                preferCanvas: true,
+                fadeAnimation: false,
+                zoomControl: false
+            }).setView([9.0820, 8.6753], 6);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+                reuseTiles: true,
+                updateWhenIdle: true
+            }).addTo(nearbyMap);
+
+            isNearbyMapInitialized = true;
+            mapContainer.classList.add('hidden');
+        }
+    }
+
+    // Initialize map tiles when page loads
+    setTimeout(preloadMapTiles, 1000);
 
     if (getLocationBtn) {
         getLocationBtn.addEventListener('click', getNearbyPharmacies);
@@ -193,7 +215,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 pharmacyResults.innerHTML = '';
 
                 if (currentView === 'flagged') {
-                    // Initialize map only when needed and only once
                     if (!mainMap) {
                         initializeMainMap();
                     }
@@ -209,7 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Flagged pharmacies view
                     if (data.flagged_pharmacies && data.flagged_pharmacies.length > 0) {
-                        // Create a marker cluster group for better performance
                         const markerClusterGroup = L.markerClusterGroup({
                             spiderfyOnMaxZoom: true,
                             showCoverageOnHover: false,
@@ -248,7 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             `;
                             pharmacyResults.appendChild(row);
 
-                            // Add markers to the cluster group if coordinates exist
                             if (pharmacy.lat && pharmacy.lng) {
                                 const marker = L.marker([pharmacy.lat, pharmacy.lng], {icon: pharmacyIcon});
 
@@ -278,11 +297,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         });
 
-                        // Add the cluster group to the map
                         if (mainMap) {
                             mainMap.addLayer(markerClusterGroup);
-
-                            // Fit bounds to show all markers if we have any
                             if (data.flagged_pharmacies.some(p => p.lat && p.lng)) {
                                 const markerBounds = markerClusterGroup.getBounds();
                                 if (markerBounds.isValid()) {
@@ -330,7 +346,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             pharmacyResults.appendChild(row);
                         });
 
-                        // Add event listeners for image viewing
                         document.querySelectorAll('.view-report-image').forEach(button => {
                             button.addEventListener('click', function() {
                                 const imageUrl = this.getAttribute('data-url');
@@ -348,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
 
-                // Update summary stats and show count of results
+                // Update summary stats
                 if (data.summary) {
                     document.getElementById('total-pharmacies').textContent = data.summary.total_flagged_pharmacies || '0';
                     document.getElementById('total-reports').textContent = data.summary.total_reports || '0';
@@ -357,7 +372,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('top-drug').textContent = data.summary.top_drugs[0].drug_name || 'None';
                     }
 
-                    // Update pagination info
                     const totalFiltered = currentView === 'flagged' ? (data.total_filtered || 0) : (data.all_reports?.length || 0);
                     const limit = parseInt(currentSearchParams.limit) || 10;
                     const start = (currentPage - 1) * limit + 1;
@@ -367,7 +381,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         Showing <span class="font-medium">${start}</span> to <span class="font-medium">${end}</span> of <span class="font-medium">${totalFiltered}</span> results
                     `;
 
-                    // Update pagination buttons
                     updatePaginationButtons(totalFiltered, currentPage, limit);
                 }
             })
@@ -391,10 +404,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const nextPageMobile = document.getElementById('next-page-mobile');
         const prevPageMobile = document.getElementById('prev-page');
 
-        // Clear existing page numbers
         pageNumbers.innerHTML = '';
 
-        // Disable/enable previous buttons
         if (currentPage <= 1) {
             prevPage?.classList.add('opacity-50', 'cursor-not-allowed');
             prevPageMobile?.classList.add('opacity-50', 'cursor-not-allowed');
@@ -407,7 +418,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (prevPageMobile) prevPageMobile.disabled = false;
         }
 
-        // Disable/enable next buttons
         if (currentPage >= totalPages) {
             nextPage?.classList.add('opacity-50', 'cursor-not-allowed');
             nextPageMobile?.classList.add('opacity-50', 'cursor-not-allowed');
@@ -420,7 +430,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (nextPageMobile) nextPageMobile.disabled = false;
         }
 
-        // Show page numbers (up to 5 pages around current page)
         const maxVisiblePages = 5;
         let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
         let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
@@ -443,7 +452,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchPharmacyDetails(pharmacyName) {
-        // Fetch detailed reports for a specific pharmacy
         fetch(`https://lyre-4m8l.onrender.com/get-flagged/${encodeURIComponent(pharmacyName)}/reports`)
             .then(response => {
                 if (!response.ok) {
@@ -452,10 +460,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                // Here you would show the detailed reports in a modal or new page
                 console.log('Pharmacy details:', data);
                 alert(`Showing ${data.report_count} reports for ${pharmacyName}`);
-                // In a real app, you would display this data properly
             })
             .catch(error => {
                 console.error('Error fetching pharmacy details:', error);
@@ -463,23 +469,39 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    // Optimized nearby pharmacies functionality
     function getNearbyPharmacies() {
-        // Reset UI
         locationPermission.classList.add('hidden');
         locationError.classList.add('hidden');
         loadingSpinner.classList.remove('hidden');
-        nearbyResults.innerHTML = '';
+        nearbyResults.innerHTML = `
+            <div class="col-span-3 text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-4"></div>
+                <p class="text-gray-600">Finding your location...</p>
+                <p class="text-sm text-gray-500 mt-2">This may take a few moments</p>
+            </div>
+        `;
 
-        // Check if geolocation is supported
         if (!navigator.geolocation) {
             showError('Geolocation not supported', 'Your browser does not support geolocation. Please try a different browser.');
             loadingSpinner.classList.add('hidden');
             return;
         }
 
-        // Get current position
+        const geolocationOptions = {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 30000
+        };
+
+        const locationTimeout = setTimeout(() => {
+            showError('Timeout', 'Getting your location is taking longer than expected. Please check your connection and try again.');
+            loadingSpinner.classList.add('hidden');
+        }, 16000);
+
         navigator.geolocation.getCurrentPosition(
             position => {
+                clearTimeout(locationTimeout);
                 userLocation = {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude
@@ -487,28 +509,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetchNearbyPlaces(userLocation.lat, userLocation.lng);
             },
             error => {
+                clearTimeout(locationTimeout);
                 loadingSpinner.classList.add('hidden');
                 switch(error.code) {
                     case error.PERMISSION_DENIED:
                         locationPermission.classList.remove('hidden');
                         break;
                     case error.POSITION_UNAVAILABLE:
-                        showError('Location unavailable', 'Location information is unavailable.');
+                        showError('Location unavailable', 'Location information is unavailable. Please check your network connection.');
                         break;
                     case error.TIMEOUT:
-                        showError('Request timeout', 'The request to get user location timed out.');
+                        showError('Request timeout', 'The request to get your location timed out. Please try again in a better network area.');
                         break;
                     default:
-                        showError('Unknown error', 'An unknown error occurred while getting your location.');
+                        showError('Location error', 'Could not determine your location. Please try again.');
                 }
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            geolocationOptions
         );
     }
 
     function fetchNearbyPlaces(lat, lng) {
+        nearbyResults.innerHTML = `
+            <div class="col-span-3 text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-4"></div>
+                <p class="text-gray-600">Finding nearby pharmacies...</p>
+            </div>
+        `;
+
+        const fetchTimeout = setTimeout(() => {
+            showError('Slow Connection', 'Fetching nearby locations is taking longer than expected. Please check your connection.');
+            loadingSpinner.classList.add('hidden');
+        }, 10000);
+
         fetch(`https://lyre-4m8l.onrender.com/get-nearby?lat=${lat}&lng=${lng}`)
             .then(response => {
+                clearTimeout(fetchTimeout);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
@@ -517,10 +553,12 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 nearbyPlaces = data;
                 displayNearbyPlaces(data);
+                updateMapWithLocation(lat, lng, data);
             })
             .catch(error => {
+                clearTimeout(fetchTimeout);
                 console.error('Error fetching nearby places:', error);
-                showError('Network error', 'Failed to fetch nearby places. Please try again later.');
+                showError('Network error', 'Failed to fetch nearby places. Please check your connection and try again.');
                 loadingSpinner.classList.add('hidden');
             });
     }
@@ -538,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        nearbyResults.innerHTML = '';
+        const fragment = document.createDocumentFragment();
 
         places.forEach(place => {
             const card = document.createElement('div');
@@ -565,19 +603,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             }
 
-            let hoursInfo = '';
-            if (place.opening_hours) {
-                hoursInfo = `
-                    <div class="mt-3 pt-3 border-t border-gray-100">
-                        <div class="flex items-center">
-                            <i class="fas fa-clock text-gray-500 mr-2"></i>
-                            <span class="text-sm font-medium">Opening Hours:</span>
-                        </div>
-                        <p class="text-sm text-gray-600 mt-1">${place.opening_hours}</p>
-                    </div>
-                `;
-            }
-
             card.innerHTML = `
                 <div class="p-6">
                     <div class="flex justify-between items-start">
@@ -599,7 +624,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         ` : ''}
                         
                         ${contactInfo}
-                        ${hoursInfo}
                     </div>
                     
                     <div class="mt-4 pt-4 border-t border-gray-100">
@@ -610,69 +634,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            nearbyResults.appendChild(card);
+            fragment.appendChild(card);
         });
 
-        // Show the map button if we have results
+        nearbyResults.innerHTML = '';
+        nearbyResults.appendChild(fragment);
         showMapBtn.classList.remove('hidden');
 
-        // Add click handlers for "View on Map" buttons
-        document.querySelectorAll('.view-on-map').forEach(button => {
-            button.addEventListener('click', function() {
-                const lat = parseFloat(this.getAttribute('data-lat'));
-                const lng = parseFloat(this.getAttribute('data-lng'));
+        // Use event delegation for better performance
+        nearbyResults.addEventListener('click', function(e) {
+            const viewOnMapBtn = e.target.closest('.view-on-map');
+            if (viewOnMapBtn) {
+                e.preventDefault();
+                const lat = parseFloat(viewOnMapBtn.getAttribute('data-lat'));
+                const lng = parseFloat(viewOnMapBtn.getAttribute('data-lng'));
 
-                if (!mapContainer.classList.contains('hidden')) {
-                    if (nearbyMap) {
-                        nearbyMap.setView([lat, lng], 16);
+                if (nearbyMap) {
+                    if (mapContainer.classList.contains('hidden')) {
+                        toggleMap();
                     }
-                } else {
-                    toggleMap();
-                    setTimeout(() => {
-                        if (nearbyMap) {
-                            nearbyMap.setView([lat, lng], 16);
-                        }
-                    }, 300);
+                    nearbyMap.setView([lat, lng], 16);
                 }
-            });
+            }
         });
     }
 
-    function toggleMap() {
-        if (mapContainer.classList.contains('hidden')) {
-            // Initialize the map if not already done
-            if (!nearbyMap) {
-                initializeNearbyMap();
+    function updateMapWithLocation(lat, lng, places) {
+        if (!nearbyMap) return;
+
+        nearbyMap.eachLayer(layer => {
+            if (layer instanceof L.Marker || layer instanceof L.MarkerClusterGroup) {
+                nearbyMap.removeLayer(layer);
             }
-            showMapBtn.innerHTML = '<i class="fas fa-map mr-2"></i> Hide Map';
-            mapContainer.classList.remove('hidden');
-        } else {
-            showMapBtn.innerHTML = '<i class="fas fa-map mr-2"></i> Show on Map';
-            mapContainer.classList.add('hidden');
-        }
-    }
+        });
 
-    function initializeNearbyMap() {
-        if (!userLocation || !nearbyPlaces || nearbyPlaces.length === 0) return;
+        nearbyMap.setView([lat, lng], 14);
 
-        nearbyMap = L.map('nearby-map', {
-            preferCanvas: true,
-            fadeAnimation: false,
-            zoomControl: false
-        }).setView([userLocation.lat, userLocation.lng], 14);
-
-        L.control.zoom({
-            position: 'topright'
-        }).addTo(nearbyMap);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19,
-            reuseTiles: true,
-            updateWhenIdle: true
-        }).addTo(nearbyMap);
-
-        // Add user location marker
         const userIcon = L.icon({
             iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
             iconSize: [32, 32],
@@ -680,15 +677,14 @@ document.addEventListener('DOMContentLoaded', function() {
             popupAnchor: [0, -32]
         });
 
-        L.marker([userLocation.lat, userLocation.lng], {
+        L.marker([lat, lng], {
             icon: userIcon,
             zIndexOffset: 1000
         }).addTo(nearbyMap)
           .bindPopup('Your Location')
           .openPopup();
 
-        // Create a marker cluster group for better performance
-        const nearbyMarkerCluster = L.markerClusterGroup({
+        const markerCluster = L.markerClusterGroup({
             spiderfyOnMaxZoom: true,
             showCoverageOnHover: false,
             zoomToBoundsOnClick: true,
@@ -696,8 +692,7 @@ document.addEventListener('DOMContentLoaded', function() {
             chunkInterval: 100
         });
 
-        // Add nearby places markers to the cluster group
-        nearbyPlaces.forEach(place => {
+        places.forEach(place => {
             const placeIcon = L.icon({
                 iconUrl: place.type === 'Pharmacy' ?
                     'https://cdn-icons-png.flaticon.com/512/484/484613.png' :
@@ -715,10 +710,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${place.phone ? `<p class="text-sm mt-1"><i class="fas fa-phone-alt mr-1"></i> ${place.phone}</p>` : ''}
             `);
 
-            nearbyMarkerCluster.addLayer(marker);
+            markerCluster.addLayer(marker);
         });
 
-        nearbyMap.addLayer(nearbyMarkerCluster);
+        nearbyMap.addLayer(markerCluster);
+    }
+
+    function toggleMap() {
+        if (mapContainer.classList.contains('hidden')) {
+            showMapBtn.innerHTML = '<i class="fas fa-map mr-2"></i> Hide Map';
+            mapContainer.classList.remove('hidden');
+
+            setTimeout(() => {
+                if (nearbyMap) {
+                    nearbyMap.invalidateSize();
+                    if (userLocation) {
+                        nearbyMap.setView([userLocation.lat, userLocation.lng], 14);
+                    }
+                }
+            }, 10);
+        } else {
+            showMapBtn.innerHTML = '<i class="fas fa-map mr-2"></i> Show on Map';
+            mapContainer.classList.add('hidden');
+        }
     }
 
     function showError(title, message) {
