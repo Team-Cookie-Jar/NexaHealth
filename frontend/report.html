@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Report Suspicious Drugs | NexaHealth</title>
+    <title>Symptom Checker | NexaHealth</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -14,8 +14,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Animate.css -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    <!-- Dropzone.js -->
-    <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css">
     <!-- Custom Tailwind Config -->
     <script>
         tailwind.config = {
@@ -27,9 +25,9 @@
                         accent: '#3b82f6',
                         dark: '#1e293b',
                         light: '#f8fafc',
-                        danger: '#ef4444',
-                        warning: '#f59e0b',
-                        success: '#10b981'
+                        lowRisk: '#10b981',
+                        mediumRisk: '#f59e0b',
+                        highRisk: '#ef4444'
                     },
                     fontFamily: {
                         sans: ['Poppins', 'sans-serif'],
@@ -40,7 +38,7 @@
                         'slide-up': 'slideUp 0.8s ease-out',
                         'pulse-slow': 'pulse 3s infinite',
                         'bounce-slow': 'bounce 2s infinite',
-                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both'
+                        'heartbeat': 'heartbeat 1.5s ease infinite'
                     },
                     keyframes: {
                         fadeIn: {
@@ -55,11 +53,12 @@
                             '0%, 100%': { opacity: '1' },
                             '50%': { opacity: '0.5' },
                         },
-                        shake: {
-                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
-                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
-                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
-                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        heartbeat: {
+                            '0%': { transform: 'scale(1)' },
+                            '25%': { transform: 'scale(1.1)' },
+                            '50%': { transform: 'scale(1)' },
+                            '75%': { transform: 'scale(1.1)' },
+                            '100%': { transform: 'scale(1)' }
                         }
                     }
                 }
@@ -97,23 +96,11 @@
         .hamburger-active .hamburger-line:nth-child(3) {
             transform: rotate(-45deg) translate(5px, -5px);
         }
-        .dropzone {
-            border: 2px dashed #3b82f6 !important;
-            border-radius: 0.75rem !important;
-            background: rgba(59, 130, 246, 0.05) !important;
+        .risk-badge {
+            transition: all 0.3s;
         }
-        .dropzone .dz-message {
-            margin: 3em 0 !important;
-            color: #3b82f6 !important;
-            font-size: 1.25rem !important;
-        }
-        .dropzone .dz-preview.dz-image-preview {
-            background: transparent !important;
-        }
-        .dropzone .dz-preview .dz-error-message {
-            background: #ef4444 !important;
-            color: white !important;
-            border-radius: 0.5rem !important;
+        .risk-badge:hover {
+            transform: scale(1.05);
         }
         .floating {
             animation: floating 3s ease-in-out infinite;
@@ -123,80 +110,72 @@
             50% { transform: translateY(-10px); }
             100% { transform: translateY(0px); }
         }
-        .flagged-container {
-            height: 400px;
-            background-color: #e5e7eb;
-            border-radius: 0.75rem;
-            overflow: hidden;
+        .symptom-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        .location-pin {
-            width: 30px;
-            height: 30px;
-            border-radius: 50% 50% 50% 0;
-            background: #ef4444;
-            position: absolute;
-            transform: rotate(-45deg);
-            left: 50%;
-            top: 50%;
-            margin: -20px 0 0 -20px;
-            animation: bounce-slow 2s infinite;
+        .symptom-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
-        .location-pin:after {
-            content: '';
-            width: 14px;
-            height: 14px;
-            margin: 8px 0 0 8px;
-            background: white;
+        .pulse-ring {
             position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
+            background-color: currentColor;
+            opacity: 0.6;
+            animation: pulse 2s ease-out infinite;
         }
     </style>
 </head>
-<body class="font-sans text-dark bg-light">
-    <!-- Navigation -->
-    <nav class="fixed w-full bg-white shadow-md z-50">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center">
-                    <a href="index.html" class="text-2xl font-bold text-primary font-serif">Nexa<span class="text-secondary">Health</span></a>
-                </div>
+<body>
+<!-- Navigation -->
+<nav class="fixed w-full bg-white shadow-md z-50">
+    <div class="container mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center">
+                <a href="index.html" class="text-2xl font-bold text-primary font-serif">Nexa<span class="text-secondary">Health</span></a>
+            </div>
 
-                <!-- Desktop Navigation -->
-                <div class="hidden md:flex space-x-8">
-                    <a href="index.html" class="nav-link text-dark hover:text-primary font-medium transition">Home</a>
-                    <a href="verify.html" class="nav-link text-dark hover:text-primary font-medium transition">Verify</a>
-                    <a href="report.html" class="nav-link text-primary font-medium transition">Report</a>
-                    <a href="flagged.html" class="nav-link text-dark hover:text-primary font-medium transition">Flagged</a>
-                    <a href="symptoms.html" class="nav-link text-dark hover:text-primary font-medium transition">Symptoms Check</a>
-                </div>
+            <!-- Desktop Navigation -->
+            <div class="hidden md:flex space-x-8">
+                <a href="index.html" class="nav-link text-dark hover:text-primary font-medium transition">Home</a>
+                <a href="verify.html" class="nav-link text-primary font-medium transition">Verify</a>
+                <a href="report.html" class="nav-link text-dark hover:text-primary font-medium transition">Report</a>
+                <a href="flagged.html" class="nav-link text-dark hover:text-primary font-medium transition">Flagged</a>
+                <a href="symptoms.html" class="nav-link text-dark hover:text-primary font-medium transition">Symptoms Check</a>
+            </div>
 
-                <div class="hidden md:block">
-                    <a href="verify.html" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all shadow-lg hover:shadow-xl">Check a Drug</a>
-                </div>
+            <div class="hidden md:block">
+                <a href="verify.html" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all shadow-lg hover:shadow-xl">Check a Drug</a>
+            </div>
 
-                <!-- Mobile Hamburger -->
-                <div class="md:hidden">
-                    <button id="hamburger" class="text-dark focus:outline-none">
-                        <div class="hamburger-line w-6 h-0.5 bg-dark mb-1.5"></div>
-                        <div class="hamburger-line w-6 h-0.5 bg-dark mb-1.5"></div>
-                        <div class="hamburger-line w-6 h-0.5 bg-dark"></div>
-                    </button>
-                </div>
+            <!-- Mobile Hamburger -->
+            <div class="md:hidden">
+                <button id="hamburger" class="text-dark focus:outline-none">
+                    <div class="hamburger-line w-6 h-0.5 bg-dark mb-1.5"></div>
+                    <div class="hamburger-line w-6 h-0.5 bg-dark mb-1.5"></div>
+                    <div class="hamburger-line w-6 h-0.5 bg-dark"></div>
+                </button>
             </div>
         </div>
+    </div>
 
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white py-4 px-6 absolute w-full left-0 shadow-lg">
-            <div class="flex flex-col space-y-4">
-                <a href="index.html" class="text-dark hover:text-primary font-medium transition">Home</a>
-                <a href="verify.html" class="text-dark hover:text-primary font-medium transition">Verify</a>
-                <a href="report.html" class="text-primary font-medium transition">Report</a>
-                <a href="flagged.html" class="text-dark hover:text-primary font-medium transition">Flagged</a>
-                <a href="symptoms.html" class="text-dark hover:text-primary font-medium transition">Symptom Check</a>
-                <a href="verify.html" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all text-center">Check a Drug</a>
-            </div>
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white py-4 px-6 absolute w-full left-0 shadow-lg">
+        <div class="flex flex-col space-y-4">
+            <a href="index.html" class="text-dark hover:text-primary font-medium transition">Home</a>
+            <a href="verify.html" class="text-dark hover:text-primary font-medium transition">Verify</a>
+            <a href="report.html" class="text-dark hover:text-primary font-medium transition">Report</a>
+            <a href="flagged.html" class="text-dark hover:text-primary font-medium transition">Flagged</a>
+            <a href="symptoms.html" class="text-primary font-medium transition">Symptom Check</a>
+            <a href="verify.html" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full font-medium transition-all text-center">Check a Drug</a>
         </div>
-    </nav>
+    </div>
+</nav>
 
     <!-- Hero Section -->
     <section class="pt-32 pb-20 md:pt-40 md:pb-28 hero-gradient text-white">
