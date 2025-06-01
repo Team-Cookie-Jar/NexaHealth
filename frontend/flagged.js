@@ -1,4 +1,4 @@
-// flagged.js - Complete JavaScript for flagged.html with enhanced map loading performance
+// flagged.js - Complete JavaScript for flagged.html with horizontal card display
 
 document.addEventListener('DOMContentLoaded', function() {
     // Mobile Menu Toggle
@@ -155,18 +155,11 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         // Show loading state
-        const cols = currentView === 'flagged' ? 5 : 6;
         pharmacyResults.innerHTML = `
-            <tr class="animate-pulse">
-                <td colspan="${cols}" class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                </td>
-            </tr>
-            <tr class="animate-pulse">
-                <td colspan="${cols}" class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-4 bg-gray-200 rounded w-1/2"></div>
-                </td>
-            </tr>
+            <div class="col-span-full animate-pulse">
+                <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
         `;
 
         // Build query parameters
@@ -189,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                // Update the table with real data
+                // Update the results with real data
                 pharmacyResults.innerHTML = '';
 
                 if (currentView === 'flagged') {
@@ -207,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
 
-                    // Flagged pharmacies view
+                    // Flagged pharmacies view - horizontal cards
                     if (data.flagged_pharmacies && data.flagged_pharmacies.length > 0) {
                         // Create a marker cluster group for better performance
                         const markerClusterGroup = L.markerClusterGroup({
@@ -226,27 +219,32 @@ document.addEventListener('DOMContentLoaded', function() {
                                 });
                             }
 
-                            const row = document.createElement('tr');
-                            row.className = 'hover:bg-gray-50';
-                            row.innerHTML = `
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="font-medium">${pharmacy.pharmacy}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div>${pharmacy.street_address || 'Address not available'}, ${pharmacy.lga || 'N/A'}</div>
-                                    <div class="text-sm text-gray-500">${pharmacy.state || 'N/A'}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium">${pharmacy.report_count} reports</span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-wrap">${drugsList || 'No drugs listed'}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <button class="text-primary hover:text-secondary font-medium view-pharmacy-details" data-pharmacy="${encodeURIComponent(pharmacy.pharmacy)}">Details</button>
-                                </td>
+                            const card = document.createElement('div');
+                            card.className = 'bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all';
+                            card.innerHTML = `
+                                <div class="p-6">
+                                    <div class="flex justify-between items-start">
+                                        <h3 class="text-lg font-bold">${pharmacy.pharmacy}</h3>
+                                        <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 font-medium text-sm">${pharmacy.report_count} reports</span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="text-gray-600 text-sm">
+                                            <i class="fas fa-map-marker-alt text-gray-500 mr-1"></i>
+                                            ${pharmacy.street_address || 'Address not available'}, ${pharmacy.lga || 'N/A'}, ${pharmacy.state || 'N/A'}
+                                        </p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <p class="text-sm font-medium">Flagged Drugs:</p>
+                                        <div class="flex flex-wrap mt-1">${drugsList || 'No drugs listed'}</div>
+                                    </div>
+                                    <div class="mt-4 pt-4 border-t border-gray-100">
+                                        <button class="w-full text-sm bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition view-pharmacy-details" data-pharmacy="${encodeURIComponent(pharmacy.pharmacy)}">
+                                            View Details
+                                        </button>
+                                    </div>
+                                </div>
                             `;
-                            pharmacyResults.appendChild(row);
+                            pharmacyResults.appendChild(card);
 
                             // Add markers to the cluster group if coordinates exist
                             if (pharmacy.lat && pharmacy.lng) {
@@ -292,58 +290,59 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } else {
                         pharmacyResults.innerHTML = `
-                            <tr>
-                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                                    No flagged pharmacies found matching your search criteria
-                                </td>
-                            </tr>
+                            <div class="col-span-full text-center py-12 text-gray-500">
+                                No flagged pharmacies found matching your search criteria
+                            </div>
                         `;
                     }
                 } else {
-                    // All reports view
+                    // All reports view - horizontal cards
                     if (data.all_reports && data.all_reports.length > 0) {
                         data.all_reports.forEach(report => {
-                            const row = document.createElement('tr');
-                            row.className = 'hover:bg-gray-50';
-                            row.innerHTML = `
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="font-medium">${report.pharmacy_name || 'N/A'}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="font-medium">${report.drug_name || 'N/A'}</div>
-                                    ${report.nafdac_reg_no ? `<div class="text-sm text-gray-500">NAFDAC: ${report.nafdac_reg_no}</div>` : ''}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div>${report.street_address || 'Address not available'}, ${report.lga || 'N/A'}</div>
-                                    <div class="text-sm text-gray-500">${report.state || 'N/A'}</div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="max-w-xs truncate">${report.description || 'No description'}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-500">${new Date(report.timestamp).toLocaleString()}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    ${report.image_url ? `<button class="text-primary hover:text-secondary font-medium view-report-image" data-url="${report.image_url}">View Image</button>` : 'No image'}
-                                </td>
+                            const card = document.createElement('div');
+                            card.className = 'bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all';
+                            card.innerHTML = `
+                                <div class="p-6">
+                                    <div class="flex justify-between items-start">
+                                        <h3 class="text-lg font-bold">${report.pharmacy_name || 'N/A'}</h3>
+                                        <span class="text-xs text-gray-500">${new Date(report.timestamp).toLocaleDateString()}</span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="font-medium">${report.drug_name || 'N/A'}</p>
+                                        ${report.nafdac_reg_no ? `<p class="text-xs text-gray-500">NAFDAC: ${report.nafdac_reg_no}</p>` : ''}
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="text-sm text-gray-600">
+                                            <i class="fas fa-map-marker-alt text-gray-500 mr-1"></i>
+                                            ${report.street_address || 'Address not available'}, ${report.lga || 'N/A'}, ${report.state || 'N/A'}
+                                        </p>
+                                    </div>
+                                    <div class="mt-3">
+                                        <p class="text-sm text-gray-700 truncate">${report.description || 'No description'}</p>
+                                    </div>
+                                    <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                                        ${report.image_url ? `
+                                            <button class="text-sm text-primary hover:text-secondary font-medium view-report-image" data-url="${report.image_url}">
+                                                View Image
+                                            </button>
+                                        ` : '<span class="text-sm text-gray-500">No image</span>'}
+                                        <span class="text-xs text-gray-500">${new Date(report.timestamp).toLocaleTimeString()}</span>
+                                    </div>
+                                </div>
                             `;
-                            pharmacyResults.appendChild(row);
-                        });
+                            pharmacyResults.appendChild(card);
 
-                        // Add event listeners for image viewing
-                        document.querySelectorAll('.view-report-image').forEach(button => {
-                            button.addEventListener('click', function() {
+                            // Add event listeners for image viewing
+                            card.querySelector('.view-report-image')?.addEventListener('click', function() {
                                 const imageUrl = this.getAttribute('data-url');
                                 showImageModal(imageUrl);
                             });
                         });
                     } else {
                         pharmacyResults.innerHTML = `
-                            <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                                    No reports found matching your search criteria
-                                </td>
-                            </tr>
+                            <div class="col-span-full text-center py-12 text-gray-500">
+                                No reports found matching your search criteria
+                            </div>
                         `;
                     }
                 }
@@ -374,11 +373,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error fetching data:', error);
                 pharmacyResults.innerHTML = `
-                    <tr>
-                        <td colspan="${currentView === 'flagged' ? 5 : 6}" class="px-6 py-4 text-center text-red-500">
-                            Error loading data. Please try again later.
-                        </td>
-                    </tr>
+                    <div class="col-span-full text-center py-12 text-red-500">
+                        Error loading data. Please try again later.
+                    </div>
                 `;
             });
     }
