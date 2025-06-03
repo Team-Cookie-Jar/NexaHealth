@@ -1,5 +1,3 @@
-// flagged.js - Complete JavaScript for flagged.html with horizontal card display
-
 document.addEventListener('DOMContentLoaded', function() {
     // Mobile Menu Toggle
     const hamburger = document.getElementById('hamburger');
@@ -467,63 +465,144 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingSpinner.classList.remove('hidden');
         nearbyResults.innerHTML = '';
 
+        // Show progress indicator on mobile
+        if (/Mobi|Android/i.test(navigator.userAgent)) {
+            document.getElementById('loading-progress')?.classList.remove('hidden');
+        }
+
         // Check if geolocation is supported
         if (!navigator.geolocation) {
             showError('Geolocation not supported', 'Your browser does not support geolocation. Please try a different browser.');
             loadingSpinner.classList.add('hidden');
+            document.getElementById('loading-progress')?.classList.add('hidden');
             return;
         }
 
-        // Get current position
-        navigator.geolocation.getCurrentPosition(
-            position => {
-                userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-                fetchNearbyPlaces(userLocation.lat, userLocation.lng);
-            },
-            error => {
-                loadingSpinner.classList.add('hidden');
-                switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        locationPermission.classList.remove('hidden');
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        showError('Location unavailable', 'Location information is unavailable.');
-                        break;
-                    case error.TIMEOUT:
-                        showError('Request timeout', 'The request to get user location timed out.');
-                        break;
-                    default:
-                        showError('Unknown error', 'An unknown error occurred while getting your location.');
-                }
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
+        // First try with high accuracy
+        tryHighAccuracyLocation();
+        
+        function tryHighAccuracyLocation() {
+            const geolocationOptions = {
+                enableHighAccuracy: true,
+                timeout: 20000, // Increased from 10s to 20s
+                maximumAge: 30000 // Cache position for 30 seconds
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    fetchNearbyPlaces(userLocation.lat, userLocation.lng);
+                },
+                error => {
+                    if (error.code === error.TIMEOUT) {
+                        // Fallback to lower accuracy
+                        navigator.geolocation.getCurrentPosition(
+                            position => {
+                                userLocation = {
+                                    lat: position.coords.latitude,
+                                    lng: position.coords.longitude
+                                };
+                                fetchNearbyPlaces(userLocation.lat, userLocation.lng);
+                            },
+                            finalError,
+                            { enableHighAccuracy: false, timeout: 10000 }
+                        );
+                    } else {
+                        handleError(error);
+                    }
+                },
+                geolocationOptions
+            );
+        }
+        
+        function handleError(error) {
+            loadingSpinner.classList.add('hidden');
+            document.getElementById('loading-progress')?.classList.add('hidden');
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    locationPermission.classList.remove('hidden');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    showError('Location unavailable', 'Please check your location settings and try again.');
+                    break;
+                case error.TIMEOUT:
+                    // Add retry button when timeout occurs
+                    showError('Location timeout', 
+                        `<p>Getting your location is taking longer than expected.</p>
+                         <button id="retry-location" class="mt-3 bg-primary text-white px-4 py-2 rounded-lg">
+                             Try Again
+                         </button>`);
+                    document.getElementById('retry-location').addEventListener('click', getNearbyPharmacies);
+                    break;
+                default:
+                    showError('Location error', 'We couldn\'t determine your location. Please try again.');
+            }
+        }
+        
+        function finalError(error) {
+            loadingSpinner.classList.add('hidden');
+            document.getElementById('loading-progress')?.classList.add('hidden');
+            showError('Location Error', 'We couldn\'t get your location. Please ensure location services are enabled and try again.');
+        }
     }
 
     function fetchNearbyPlaces(lat, lng) {
-        fetch(`https://lyre-4m8l.onrender.com/get-nearby?lat=${lat}&lng=${lng}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+        // Show loading state
+        loadingSpinner.classList.remove('hidden');
+        
+        // Add timeout to fetch request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        
+        fetch(`https://lyre-4m8l.onrender.com/get-nearby?lat=${lat}&lng=${lng}`, {
+            signal: controller.signal
+        })
+        .then(response => {
+            clearTimeout(timeoutId);
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            // Cache the results
+            localStorage.setItem(`nearby-${lat}-${lng}`, JSON.stringify({
+                data: data,
+                timestamp: Date.now()
+            }));
+            
+            nearbyPlaces = data;
+            displayNearbyPlaces(data);
+        })
+        .catch(error => {
+            clearTimeout(timeoutId);
+            console.error('Error:', error);
+            
+            // Try to load from cache if available
+            const cached = localStorage.getItem(`nearby-${lat}-${lng}`);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                // Only use cache if less than 1 hour old
+                if (Date.now() - parsed.timestamp < 3600000) {
+                    nearbyPlaces = parsed.data;
+                    displayNearbyPlaces(parsed.data);
+                    showError('Network issue', 'Showing cached results. Data might not be current.');
+                    return;
                 }
-                return response.json();
-            })
-            .then(data => {
-                nearbyPlaces = data;
-                displayNearbyPlaces(data);
-            })
-            .catch(error => {
-                console.error('Error fetching nearby places:', error);
-                showError('Network error', 'Failed to fetch nearby places. Please try again later.');
-                loadingSpinner.classList.add('hidden');
-            });
+            }
+            
+            showError('Network error', 'Failed to fetch nearby places. Please check your connection and try again.');
+        })
+        .finally(() => {
+            loadingSpinner.classList.add('hidden');
+            document.getElementById('loading-progress')?.classList.add('hidden');
+        });
     }
 
     function displayNearbyPlaces(places) {
         loadingSpinner.classList.add('hidden');
+        document.getElementById('loading-progress')?.classList.add('hidden');
 
         if (!places || places.length === 0) {
             nearbyResults.innerHTML = `
@@ -537,6 +616,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         nearbyResults.innerHTML = '';
 
+        // Show initial 3 results immediately
+        const initialPlaces = places.slice(0, 3);
+        renderPlaceCards(initialPlaces);
+        
+        // Then load the rest with a slight delay
+        if (places.length > 3) {
+            setTimeout(() => {
+                const remainingPlaces = places.slice(3);
+                renderPlaceCards(remainingPlaces);
+            }, 300);
+        }
+
+        // Show the map button if we have results
+        showMapBtn.classList.remove('hidden');
+    }
+
+    function renderPlaceCards(places) {
         places.forEach(place => {
             const card = document.createElement('div');
             card.className = 'bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all';
@@ -610,9 +706,6 @@ document.addEventListener('DOMContentLoaded', function() {
             nearbyResults.appendChild(card);
         });
 
-        // Show the map button if we have results
-        showMapBtn.classList.remove('hidden');
-
         // Add click handlers for "View on Map" buttons
         document.querySelectorAll('.view-on-map').forEach(button => {
             button.addEventListener('click', function() {
@@ -652,37 +745,77 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializeNearbyMap() {
         if (!userLocation || !nearbyPlaces || nearbyPlaces.length === 0) return;
 
+        // Detect mobile devices
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
         nearbyMap = L.map('nearby-map', {
             preferCanvas: true,
             fadeAnimation: false,
-            zoomControl: false
-        }).setView([userLocation.lat, userLocation.lng], 14);
+            zoomControl: false,
+            zoomSnap: isMobile ? 0.5 : 0.1, // Less zoom levels on mobile
+            wheelPxPerZoomLevel: isMobile ? 120 : 60, // Slower zoom on mobile
+            touchZoom: isMobile ? 'center' : true
+        }).setView([userLocation.lat, userLocation.lng], isMobile ? 13 : 14);
 
         L.control.zoom({
             position: 'topright'
         }).addTo(nearbyMap);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Use simpler tiles for mobile
+        const tileLayerUrl = isMobile 
+            ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        
+        L.tileLayer(tileLayerUrl, {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19,
             reuseTiles: true,
-            updateWhenIdle: true
+            updateWhenIdle: true,
+            detectRetina: isMobile // Better rendering on retina displays
         }).addTo(nearbyMap);
 
-        // Add user location marker
-        const userIcon = L.icon({
-            iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
-            iconSize: [32, 32],
-            iconAnchor: [16, 32],
-            popupAnchor: [0, -32]
-        });
+        // Simplify markers for mobile
+        const markerOptions = isMobile ? {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                html: '<div class="marker-pin"></div>',
+                iconSize: [30, 42],
+                iconAnchor: [15, 42]
+            }),
+            riseOnHover: false
+        } : {
+            icon: L.icon({
+                iconUrl: 'https://cdn0.iconfinder.com/data/icons/small-n-flat/24/678111-map-marker-512.png',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            })
+        };
 
-        L.marker([userLocation.lat, userLocation.lng], {
-            icon: userIcon,
-            zIndexOffset: 1000
-        }).addTo(nearbyMap)
-          .bindPopup('Your Location')
-          .openPopup();
+        // Add user location marker
+        L.marker([userLocation.lat, userLocation.lng], markerOptions)
+            .addTo(nearbyMap)
+            .bindPopup('Your Location')
+            .openPopup();
+
+        // Add CSS for mobile markers
+        if (isMobile) {
+            const style = document.createElement('style');
+            style.textContent = `
+                .custom-marker .marker-pin {
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50% 50% 50% 0;
+                    background: #3b82f6;
+                    transform: rotate(-45deg);
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    margin: -15px 0 0 -15px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
 
         // Create a marker cluster group for better performance
         const nearbyMarkerCluster = L.markerClusterGroup({
@@ -720,7 +853,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showError(title, message) {
         document.getElementById('error-title').textContent = title;
-        document.getElementById('error-message').textContent = message;
+        document.getElementById('error-message').innerHTML = message;
         locationError.classList.remove('hidden');
     }
 
